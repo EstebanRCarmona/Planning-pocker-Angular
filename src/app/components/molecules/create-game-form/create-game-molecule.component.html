@@ -1,0 +1,20 @@
+<form [formGroup]="gameForm" (ngSubmit)="onSubmit()" class="create-game-form">
+  <fieldset class="form-group">
+    <app-input-atom
+      formControlName="name"
+      title="Nombre de la partida"
+      placeholder="Ingrese el nombre de la partida">
+    </app-input-atom>
+    <section class="error-message" *ngIf="showErrors && gameForm.get('name')?.touched && gameForm.get('name')?.invalid">
+      {{ getErrorMessage() }}
+    </section>
+  </fieldset>
+
+  <fieldset class="form-group">
+    <app-button
+      [type]="'submit'"
+      [disabled]="gameForm.invalid">
+      Crear Partida
+    </app-button>
+  </fieldset>
+</form>

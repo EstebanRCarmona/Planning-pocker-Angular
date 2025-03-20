@@ -1,0 +1,10 @@
+<div class="input-container">
+  <div class="input-title">{{ title }}</div>
+  <input
+    type="text"
+    class="input-field"
+    [class.error]="error"
+    [(ngModel)]="inputValue"
+    (ngModelChange)="onInputChange()"
+  />
+</div>

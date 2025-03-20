@@ -1,0 +1,8 @@
+<div
+  class="cart"
+  [class.voted]="isVoted"
+  [class.disabled]="disabled"
+  (click)="onCardClick()">
+  <span class="number">{{ number }}</span>
+</div>
+<span class="vote-count" *ngIf="votes !== undefined">{{ votes }} voto{{ votes > 1 ? 's' : '' }}</span>

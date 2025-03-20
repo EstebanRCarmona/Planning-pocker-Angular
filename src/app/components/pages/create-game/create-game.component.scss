@@ -1,0 +1,131 @@
+.create-game-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem;
+  padding-top: 140px;
+  position: relative;
+  box-sizing: border-box;
+
+  .create-game-content {
+    width: 100%;
+    max-width: 480px;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    position: relative;
+    margin-top: 50px;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    visibility: hidden;
+
+    &.loaded {
+      opacity: 1;
+      transform: translateY(0);
+      visibility: visible;
+    }
+
+
+    .page-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #2D3748;
+      margin-bottom: 2rem;
+    }
+
+    ::ng-deep {
+      app-create-game-form {
+        display: block;
+
+        .input-container,
+        button {
+          opacity: 0;
+          transform: translateY(20px);
+          animation: fadeInUp 0.6s forwards;
+          animation-delay: calc(var(--index, 0) * 0.1s + 0.4s);
+        }
+
+        @for $i from 1 through 10 {
+          .input-container:nth-child(#{$i}),
+          button:nth-child(#{$i}) {
+            --index: #{$i};
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.create-game-content {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (max-width: 768px) {
+  .create-game-container {
+    padding: 1rem;
+    padding-top: 100px;
+
+    .create-game-content {
+      margin-top: 30px;
+      padding: 1.5rem;
+    }
+  }
+}
+
+.mi-logo-container {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  pointer-events: all;
+  height: 70px;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: opacity 1s ease, transform 2s ease;
+}
+
+.mi-logo-container.loaded {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.mi-logo-container img {
+  width: 70px;
+  height: auto;
+  transition: transform 1s ease;
+  user-select: none;
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+.mi-logo-container .logo-text {
+  margin-left: 10px;
+  color: white;
+  font-size: 24px;
+  opacity: 0;
+  transition: opacity 0s ease, transform 2s ease;
+}
+
+.mi-logo-container.loaded .logo-text {
+  opacity: 1;
+  transform: translateX(10px);
+}
+
+@media (max-width: 768px) {
+  .mi-logo-container img {
+    width: 50px;
+  }
+}

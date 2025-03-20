@@ -1,0 +1,47 @@
+<main class="page-container">
+  <section class="background">
+    <app-game-page></app-game-page>
+  </section>
+
+  <article class="container">
+    <div class="custom-box">
+      <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+        <app-input-atom
+          title="Tu nombre"
+          type="text"
+          formControlName="name">
+        </app-input-atom>
+
+        <div class="validation-space">
+          <div class="error-message"
+            [ngClass]="{'hidden': !showErrors}"
+            *ngIf="isFieldInvalid()">
+            {{ getErrorMessage() }}
+          </div>
+        </div>
+
+        <div class="role-selector" *ngIf=" noRoleSelector">
+          <label class="role-option">
+            <input type="radio" formControlName="role" value="player" aria-label="Jugador">
+            <span class="custom-radio"></span>
+            <span class="role-text">Jugador</span>
+          </label>
+          <label class="role-option">
+            <input type="radio" formControlName="role" value="spectator" aria-label="Espectador">
+            <span class="custom-radio"></span>
+            <span class="role-text">Espectador</span>
+          </label>
+        </div>
+        <ng-template #noRoleSelector>
+          <div class="role-placeholder"></div>
+        </ng-template>
+
+        <app-button
+          [disabled]="!userForm.valid"
+          (click)="onSubmit()">
+          Continuar
+        </app-button>
+      </form>
+    </div>
+  </article>
+</main>

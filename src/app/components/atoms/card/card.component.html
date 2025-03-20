@@ -1,0 +1,13 @@
+<div class="card-container">
+  <div class="card" [ngClass]="{ 'overlay-active': overlay !== null, 'interactive': userRole }" [ngStyle]="getOverlayStyle()" >
+    <div class="overlay"></div>
+    <span class="number" *ngIf="voted !== null">{{ voted }}</span>
+  </div>
+  <div class="card-title">{{ title }}</div>
+  <div
+    *ngIf="adminTransferOptions"
+    class="admin-transfer-tooltip"
+  >
+    🔑 Pasar permisos de admin
+  </div>
+</div>

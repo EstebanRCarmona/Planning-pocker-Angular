@@ -1,0 +1,86 @@
+<article class="table-container">
+  <header class="cards-row">
+    <ng-container *ngFor="let position of ['side-top-left', 'center', 'side-top-right']">
+      <ng-container *ngTemplateOutlet="playerDisplayTemplate; context: {
+        position: position,
+        player: getPlayerByID(position),
+        adminOptions: adminTransferOptions[position]
+      }"></ng-container>
+    </ng-container>
+  </header>
+
+  <section class="table-row-wrapper">
+    <ng-container *ngFor="let position of ['left-side', 'right-side']">
+      <ng-container *ngTemplateOutlet="playerDisplayTemplate; context: {
+        position: position,
+        player: getPlayerByID(position),
+        adminOptions: adminTransferOptions[position],
+        containerClass: position === 'left-side' ? 'circle-container-left' : 'circle-container-right',
+        cardClass: position === 'left-side' ? 'side-card left' : 'side-card right'
+      }"></ng-container>
+    </ng-container>
+
+    <div class="table-row">
+      <div class="rectangle"></div>
+      <div class="rectangle-2"></div>
+      <div class="rectangle-3"></div>
+    </div>
+  </section>
+
+  <footer class="cards-row">
+    <ng-container *ngFor="let position of ['bottom-left-1', 'bottom-center', 'bottom-right-1']">
+      <ng-container *ngTemplateOutlet="playerDisplayTemplate; context: {
+        position: position,
+        player: getPlayerByID(position),
+        adminOptions: adminTransferOptions[position]
+      }"></ng-container>
+    </ng-container>
+  </footer>
+
+  <ng-template #playerDisplayTemplate let-position="position" let-player="player" let-adminOptions="adminOptions"
+               let-containerClass="containerClass" let-cardClass="cardClass">
+    <ng-container *ngIf="player?.rol === 'player'">
+      <app-card
+        [ngClass]="cardClass || ''"
+        [title]="getPlayerForPosition(position) || ''"
+        [adminTransferOptions]="adminOptions"
+        [overlay]="getPlayerCardOverlay(position).overlay"
+        [voted]="getPlayerCardOverlay(position).vote"
+        [userRole]="isAdmin()"
+        (mouseenter)="showAdminTransferTooltip(position)"
+        (mouseleave)="hideAdminTransferTooltip(position)"
+        (click)="isAdmin() && passAdmin(position)"
+      >
+        <div *ngIf="adminOptions" class="admin-transfer-tooltip">
+          🔑 Pasar permisos de admin
+        </div>
+      </app-card>
+    </ng-container>
+
+    <ng-container *ngIf="player?.rol === 'viwer'">
+      <section [ngClass]="containerClass || 'circle-container'">
+        <div
+          class="circle"
+          [ngClass]="{
+            'interactive': isAdmin(),
+            'cursor-pointer': isAdmin(),
+            'hover:bg-gray-200': isAdmin()
+          }"
+          (mouseenter)="isAdmin() && showAdminTransferTooltip(position)"
+          (mouseleave)="isAdmin() && hideAdminTransferTooltip(position)"
+          (click)="isAdmin() && passAdmin(position)"
+        >
+          <span class="circle-text">
+            {{ player?.name?.slice(0, 2) }}
+          </span>
+          <div *ngIf="adminOptions" class="admin-transfer-tooltip">
+            🔑 Pasar permisos de admin
+          </div>
+        </div>
+        <div class="circle-name">
+          {{ player?.name }}
+        </div>
+      </section>
+    </ng-container>
+  </ng-template>
+</article>

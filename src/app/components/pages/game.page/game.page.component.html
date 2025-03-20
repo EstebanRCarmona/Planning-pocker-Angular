@@ -1,0 +1,127 @@
+<main class="game-page-container">
+  <header class="logo-container" id="logoContainer">
+    <img src="../assets/images/ficha-de-poker.png" alt="Logo">
+  </header>
+  <h1 class="game-name">{{ gameName }}</h1>
+
+  <header class="header-buttons">
+    <button
+      *ngIf="isAdmin"
+      class="custom-button scoring-mode-button"
+      (click)="toggleScoringMode()"
+    >
+      <fa-icon [icon]="faTableColumns"></fa-icon> Modo de Puntuación
+    </button>
+    <nav
+      *ngIf="isScoringModeVisible"
+      class="scoring-mode-dropdown"
+    >
+      <p (click)="changeScoringMode('fibonacci')" [ngClass]="{'selected': scoringMode === 'fibonacci'}"> Fibonacci</p>
+      <p (click)="changeScoringMode('oneToTen')"[ngClass]="{'selected': scoringMode === 'oneToTen'}" >1 en 1 hasta 10</p>
+      <p (click)="changeScoringMode('twoToTwenty')"[ngClass]="{'selected': scoringMode === 'twoToTwenty'}">2 en 2 hasta 20</p>
+    </nav>
+    <div class="user-circle" *ngIf="userName" (click)="toggleRoleChange()" [ngClass]="{'show': isRoleChangeVisible}">
+      <span>{{ getInitials(userName) }}</span>
+    </div>
+    <div *ngIf="isRoleChangeVisible" class="role-change-container" [ngClass]="{'show': isRoleChangeVisible}">
+      <p *ngIf="currentUserRole === 'player'" (click)="changeRole()">Cambiar a Espectador</p>
+      <p *ngIf="currentUserRole === 'viwer'" (click)="changeRole()">Cambiar a Jugador</p>
+    </div>
+    <button class="custom-button" (click)="openInviteModal()">Invitar jugadores</button>
+  </header>
+
+  <section class="table-container">
+    <app-table-game
+      #tableGame
+      [currentUserVote]="getCurrentUserVote()"
+    ></app-table-game>
+  </section>
+
+  <section class="cart-container">
+    <ng-container *ngIf="!isGameComplete">
+      <app-cart
+        *ngFor="let number of fibonacciNumbers"
+        [number]="number"
+        [isVoted]="getCurrentUserVote().vote === number"
+        (cardSelected)="vote(number)"
+        [disabled]="!isPlayerRole() || currentUserVote !== null"
+      ></app-cart>
+      <app-cart
+        [disabled]="!isPlayerRole() || currentUserVote !== null"
+        [number]="'?'"
+      ></app-cart>
+      <app-cart
+        [number]="'☕'"
+        [disabled]="!isPlayerRole() || currentUserVote !== null"
+      ></app-cart>
+    </ng-container>
+
+    <ng-container *ngIf="isGameComplete">
+      <ng-container *ngFor="let voteInfo of getUniqueVotes()">
+        <app-cart
+          [number]="voteInfo.vote"
+          [votes]="voteInfo.count"
+        ></app-cart>
+      </ng-container>
+    </ng-container>
+  </section>
+  <div *ngIf="isGameComplete" class="average-container">
+    <p class="average-text">Promedio:</p>
+    <p class="average-value">{{ getAverageVote() | number: '1.0-2' }}</p>
+  </div>
+
+  <div *ngIf=" isAdmin && !isGameComplete" class="buton-cont">
+    <ng-container *ngIf="!isLoading">
+      <app-button
+        [disabled]="!canRevealVotes()"
+        (onClick)="revealVotes()"
+        [revealt]="true"
+      >
+        Revelar Cartas
+      </app-button>
+  </ng-container>
+  <ng-container *ngIf="isLoading">
+    <div class="loading-dots">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+
+    </div>
+  </ng-container>
+  </div>
+  <div *ngIf=" isAdmin && isGameComplete" class="restar-cont">
+    <app-button
+      [disabled]="false"
+      (onClick)="restartGame()"
+      [revealt]="true"
+    >
+      Nueva votación
+    </app-button>
+  </div>
+
+  <div *ngIf="isInviteModalVisible" class="invite-modal-overlay">
+    <div class="invite-modal">
+      <div class="invite-modal-header">
+        <span class="invite-modal-title">Invitar jugadores</span>
+        <button class="close-modal-btn" (click)="closeInviteModal()">×</button>
+      </div>
+      <div class="invite-modal-content">
+        <input
+          type="text"
+          [value]="invitationLink"
+          readonly
+          class="invitation-link-input"
+        >
+      </div>
+      <div class="invite-modal-footer">
+        <button
+          class="copy-link-btn"
+          (click)="copyLinkAndClose()"
+        >
+          Copiar link
+        </button>
+      </div>
+    </div>
+  </div>
+</main>

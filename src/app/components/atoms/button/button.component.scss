@@ -1,0 +1,64 @@
+.custom-button {
+  background-color: #fcfcfcf6;
+  color: rgb(74, 7, 150);
+  padding: 10px 20px;
+  border: none;
+  border-radius: 25px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  font-weight: bold;
+
+  &:hover:not(:disabled) {
+    background-color: rgba(240, 236, 243, 0.699);
+    transform: scale(1.05);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
+  &:disabled {
+    background-color: rgba(203, 213, 224, 0.445);
+    cursor: not-allowed;
+    color: rgba(55, 5, 116, 0.918);
+    transform: none;
+  }
+
+
+}
+
+.revealt-class {
+
+  background-color: #7111dff6;
+  color: rgb(255, 255, 255);
+  padding: 10px 20px;
+  border: none;
+  border-radius: 25px;
+  border-color:  rgba(255, 255, 255, 0.466);
+  border-width: 1px;
+  border-style: solid;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  font-weight: bold;
+
+  &:hover:not(:disabled) {
+    background-color: rgba(171, 70, 248, 0.699);
+    transform: scale(1.05);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
+  &:disabled {
+    background-color: #7111df6b;
+    cursor: not-allowed;
+    color: rgba(255, 255, 255, 0.356);
+    border-color:  rgba(255, 255, 255, 0.438);
+    border-width: 1px;
+    border-style: solid;
+    transform: none;
+  }
+}
