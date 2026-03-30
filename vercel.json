@@ -3,19 +3,8 @@
   "buildCommand": "npm --prefix server install && ng build --configuration production && npm --prefix server run build",
   "outputDirectory": "server/dist",
   "public": "server/dist/public",
-  "api": "api",
   "env": {
     "NODE_ENV": "production"
   },
-  "regions": ["iad1"],
-  "functions": {
-    "api/**.js": {
-      "runtime": "nodejs20.x",
-      "memory": 1024,
-      "maxDuration": 60
-    },
-    "server/dist/index.js": {
-      "runtime": "nodejs20.x"
-    }
-  }
+  "regions": ["iad1"]
 }
