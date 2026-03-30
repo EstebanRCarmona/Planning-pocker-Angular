@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "ng build --configuration production && npm --prefix server install && npm --prefix server run build",
   "outputDirectory": "server/dist",
   "env": {
     "NODE_ENV": "production"
