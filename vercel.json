@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "public": "dist/planning-poker",
   "buildCommand": "npm run build",
   "env": {
     "NODE_ENV": "production"
