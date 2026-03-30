@@ -1,10 +1,12 @@
 {
   "version": 2,
   "buildCommand": "npm --prefix server install && ng build && npm --prefix server run build",
-  "env": {
-    "NODE_ENV": "production",
-    "PORT": "3000"
-  },
+  "builds": [
+    {
+      "src": "server/dist/index.js",
+      "use": "@vercel/node"
+    }
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
@@ -18,5 +20,8 @@
       "src": "/(.*)",
       "dest": "server/dist/index.js"
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
