@@ -1,213 +1,132 @@
-import { throwError,Observable, of } from 'rxjs';
+import { Observable } from 'rxjs';
 import { Game } from 'src/app/shared/interfaces/game.model';
 import { Injectable } from "@angular/core";
 import { CreateGameRequest } from 'src/app/shared/interfaces/game.model';
 import { RolUsuario, User } from "src/app/shared/interfaces/user.model";
-import { GAME_NOT_FOUND } from "src/app/shared/Constants";
+import { HttpClient } from '@angular/common/http';
+import { SocketService } from '../socketio/socket.service';
+import { GameCommunicationService } from '../comunicationService/comunicationService';
 
 @Injectable({
   providedIn: 'root'
 })
 export class GameService {
-  private readonly GAMES_STORAGE_KEY = 'games';
-  private games: Game[] = [];
+  private apiUrl = 'http://localhost:3000/api';
 
-  constructor() {
-    this.loadGamesFromStorage();
-  }
-
-  private loadGamesFromStorage(): void {
-    const gamesJson = localStorage.getItem(this.GAMES_STORAGE_KEY);
-    if (gamesJson) {
-      this.games = JSON.parse(gamesJson);
-    }
-  }
-
-  private saveGamesToStorage(): void {
-    localStorage.setItem(this.GAMES_STORAGE_KEY, JSON.stringify(this.games));
-  }
-
-  joinGame(gameId: string, user: User): Observable<Game> {
-    const game = this.games.find(g => g.id === gameId);
-    if (!game) {
-      return throwError(() => new Error(GAME_NOT_FOUND));
-    }
-
-    if (game.players.length >= 8) {
-      return throwError(() => new Error('Game is full'));
-    }
-
-    if (game.players.length === 0) {
-      user.admin = true;
-
-    }
-
-    if (game.players.some(p => p.id === user.id)) {
-      return throwError(() => new Error('User already joined the game'));
-    }
-
-    game.players.push(user);
-    this.saveGamesToStorage();
-    return of(game);
-  }
-
-  vote(gameId: string, userId: string, vote: number): Observable<Game> {
-    const game = this.games.find(g => g.id === gameId);
-    if (!game) {
-      return throwError(() => new Error(GAME_NOT_FOUND));
-    }
-
-    if (!game.players.some(p => p.id === userId)) {
-      return throwError(() => new Error('User not part of the game'));
-    }
-
-    game.votes[userId] = vote;
-    this.saveGamesToStorage();
-    return of(game);
-  }
-
+  constructor(
+    private http: HttpClient,
+    private socketService: SocketService,
+    private gameCommunicationService: GameCommunicationService
+  ) {}
 
   createGame(request: CreateGameRequest): Observable<Game> {
-    const newGame: Game = {
-      id: this.generateId(),
+    const userId = this.generateId();
+    sessionStorage.setItem('currentUserId', userId);
+    
+    return this.http.post<Game>(`${this.apiUrl}/games`, {
       name: request.name,
-      players: [],
-      state: "waiting",
-      votes: {}
-    };
-    this.games.push(newGame);
-    this.saveGamesToStorage();
-    return of(newGame);
+      adminId: userId,
+      scoringMode: 'fibonacci'
+    });
   }
 
-  private generateId(): string {
-    return Math.random().toString(36).substr(2, 9);
+  joinGame(gameId: string, user: User): Observable<any> {
+    if (!this.socketService.isConnected()) {
+      this.socketService.connect();
+    }
+
+    this.socketService.joinGame(gameId, user.id, user.name, user.rol || RolUsuario.PLAYER);
+    return this.socketService.playerJoined$;
   }
 
-  AuthService(gameId?: string): string | null{
-    if (gameId) {
-      return localStorage.getItem(`userName_${gameId}`);
-    }
-
-    return localStorage.getItem('userName');
+  vote(gameId: string, userId: string, vote: number): Observable<any> {
+    this.socketService.submitVote(gameId, userId, vote);
+    return this.socketService.votesUpdated$;
   }
 
-  getGameById(id: string): Observable<Game> {
-    this.loadGamesFromStorage();
-    const game = this.games.find(g => g.id === id);
-    if (game) {
-      return of(game);
-    } else {
-      return throwError(() => new Error(GAME_NOT_FOUND));
-    }
+  getGameById(id: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/games/${id}`);
   }
 
-  playerVote(gameId: string, userId: string, vote: number): Observable<Game> {
-    const game = this.games.find(g => g.id === gameId);
-    if (!game) {
-      return throwError(() => new Error(GAME_NOT_FOUND));
-    }
-    game.votes[userId] = vote;
-
-    const votedPlayers = Object.keys(game.votes).length;
-    const totalPlayers = game.players.filter(p => p.rol === RolUsuario.PLAYER).length;
-
-    if (votedPlayers === totalPlayers) {
-      game.state = 'voted';
-    }
-
-    this.saveGamesToStorage();
-    return of(game);
+  revealVotes(gameId: string): Observable<any> {
+    this.socketService.revealVotes(gameId);
+    return this.socketService.votesRevealed$;
   }
 
-  revealVotes(gameId: string): Observable<Game> {
-    const game = this.games.find(g => g.id === gameId);
-    if (!game) {
-      return throwError(() => new Error(GAME_NOT_FOUND));
-    }
+  resetGameVotesAndStatus(gameId: string): void {
+    this.socketService.resetVotes(gameId);
+  }
 
-    game.state = 'completed';
-    this.saveGamesToStorage();
-    return of(game);
+  playerVote(gameId: string, userId: string, vote: number): Observable<any> {
+    this.vote(gameId, userId, vote);
+    return this.socketService.votesUpdated$;
   }
 
   getCurrentUser(gameId: string, userName: string): User | undefined {
-    const game = this.games.find(g => g.id === gameId);
-    return game?.players.find(p => p.name === userName);
+
+    return (this.gameCommunicationService as any).playerSubject.value || undefined;
   }
 
   getGamePlayerCount(gameId: string, rol: RolUsuario): number {
-    this.loadGamesFromStorage();
-    const game = this.games.find(g => g.id === gameId);
-    if (!game) {
-      return 0
+    const storedPlayers = sessionStorage.getItem(`players_${gameId}`);
+    if (!storedPlayers) return 0;
+    try {
+      const players: User[] = JSON.parse(storedPlayers);
+      return players.filter(p => p.rol === rol).length;
+    } catch (e) {
+      return 0;
     }
-    return game.players.filter(p => p.rol === rol).length;
+  }
+
+  getGameVotingPlayerCount(gameId: string): number {
+    const storedPlayers = sessionStorage.getItem(`players_${gameId}`);
+    if (!storedPlayers) return 0;
+    try {
+      const players: User[] = JSON.parse(storedPlayers);
+      // Contar players y admins (ambos pueden votar)
+      return players.filter(p => p.rol === RolUsuario.PLAYER || p.rol === 'admin').length;
+    } catch (e) {
+      return 0;
+    }
   }
 
   isAdminUser(gameId: string, userName: string): boolean {
-    const game = this.games.find(g => g.id === gameId);
-    const currentUser = game?.players.find(p => p.name === userName);
-    return currentUser?.admin || false;
+    // Usar directamente el currentUserId del sessionStorage que es la fuente de verdad
+    const currentUserId = sessionStorage.getItem('currentUserId');
+    const adminId = sessionStorage.getItem(`admin_${gameId}`);
+    
+    // Evitar comparar con string 'undefined'
+    if (!currentUserId || !adminId || adminId === 'undefined') {
+      return false;
+    }
+    
+    const isAdmin = currentUserId === adminId;
+    return isAdmin;
   }
 
-  resetGameVotesAndStatus(gameId: string):void {
-    this.loadGamesFromStorage();
-    const game = this.games.find(g => g.id === gameId);
-
-    if (!game) {
-      throwError(() => new Error(GAME_NOT_FOUND));
-    }
-    if(game){
-    game.votes = {};
-    game.state = 'waiting';
-
-    this.saveGamesToStorage();
-    }
+  updateUserRole(gameId: string, userId: string, newRole?: string): void {
+    const role = newRole || RolUsuario.VIEWER;
+    this.socketService.changePlayerRole(gameId, userId, role);
   }
 
-  updateUserRole(gameId: string, userId: string): void {
-    const game = this.games.find(g => g.id === gameId);
-
-    if (!game) {
-     throwError(() => new Error(GAME_NOT_FOUND));
-    }
-    if(game){
-    const user = game.players.find(p => p.id === userId);
-
-    if (!user) {
-      throwError(() => new Error('User not found in game'));
-    }
-
-    if(user)
-    if (user.rol == RolUsuario.PLAYER) {
-      user.rol = RolUsuario.VIEWER;
-    } else if (user.rol == RolUsuario.VIEWER) {
-      user.rol = RolUsuario.PLAYER;
-    }
-    this.saveGamesToStorage();
+  changeAdmin(id: string, gameId: string): void {
+    const oldAdminId = sessionStorage.getItem(`admin_${gameId}`) || '';
+    this.socketService.changeAdmin(gameId, id, oldAdminId);
+    sessionStorage.setItem(`admin_${gameId}`, id);
   }
 
+  private generateId(): string {
+   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
   }
 
-  changeAdmin(id: string, gameId: string):void{
-    const game = this.games.find(g => g.id === gameId);
-
-    if (!game) {
-     throwError(() => new Error(GAME_NOT_FOUND));
+  AuthService(gameId?: string): string | null {
+    if (gameId) {
+      return sessionStorage.getItem(`userName_${gameId}`);
     }
-    if(game){
-    const admin=game.players.find(p => p.admin == true)
-    const user = game.players.find(p => p.id === id);
-
-    if (!user || !admin) {
-      throwError(() => new Error('User not found in game'));
-    }
-    if(admin && user){
-    admin.admin=false;
-    user.admin=true;
-    this.saveGamesToStorage();
-    }
-   }
+    return sessionStorage.getItem('userName');
   }
 }

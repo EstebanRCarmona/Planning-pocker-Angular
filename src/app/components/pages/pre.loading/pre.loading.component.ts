@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { trigger, state, style, animate, transition } from '@angular/animations';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
+import { LoadingService } from 'src/app/shared/services/loading.service';
 
 @Component({
   selector: 'app-pre-loading',
@@ -27,20 +28,33 @@ export class PreLoadingComponent implements OnInit {
   rotationState: 'start' | 'end' = 'start';
   textState: 'hidden' | 'visible' = 'hidden';
 
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private loadingService: LoadingService
+  ) {
   }
 
   ngOnInit() {
+    // Marcar que el usuario vio el loading
+    this.loadingService.setLoadingShown();
+
     setTimeout(() => {
       this.rotationState = 'end';
     }, 500);
 
     setTimeout(() => {
       this.textState = 'visible';
-    },3400);
+    }, 3400);
 
     setTimeout(() => {
-      this.router.navigate(['/create-game']);
+      this.route.queryParams.subscribe(params => {
+        if (params['redirect']) {
+          this.router.navigateByUrl(params['redirect']);
+        } else {
+          this.router.navigate(['/create-game']);
+        }
+      });
     }, 5500);
   }
 }

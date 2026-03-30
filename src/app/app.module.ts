@@ -17,6 +17,7 @@ import { CreateGamePage } from './components/pages/create-game/create-game.compo
 import { CartComponent } from './components/atoms/cart/cart.component';
 import { ToastComponent } from './components/atoms/toast/toast.component';
 import { PreLoadingComponent } from './components/pages/pre.loading/pre.loading.component';
+import { CountdownComponent } from './components/atoms/countdown/countdown.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 @NgModule({
@@ -34,6 +35,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
     ToastComponent,
     ButtonComponent,
     PreLoadingComponent,
+    CountdownComponent,
 
 
   ],

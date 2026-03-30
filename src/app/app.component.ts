@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { CleanupService } from './shared/services/cleanup.service';
 
 @Component({
   selector: 'app-root',
@@ -7,6 +8,8 @@ import { Component, OnInit } from '@angular/core';
 })
 export class AppComponent implements OnInit {
   title = 'Planning-Poker';
+
+  constructor(private cleanupService: CleanupService) {}
 
   ngOnInit(): void {
     setTimeout(() => {
@@ -19,10 +22,8 @@ export class AppComponent implements OnInit {
 
 
   onInputChanged(newValue: string): void {
-    console.log('Nuevo valor del input:', newValue);
   }
 
   onSubmit(): void {
-    console.log("Formulario enviado!");
   }
 }

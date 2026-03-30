@@ -4,7 +4,12 @@
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",
-    "start": "ng serve"
+    "start": "ng serve",
+    "dev": "concurrently \"cd server && npm run dev\" \"ng serve\"",
+    "build": "ng build && cd server && npm run build",
+    "server:install": "cd server && npm install",
+    "vercel:build": "npm run build",
+    "vercel:start": "cd server && npm start"
   },
   "private": true,
   "dependencies": {
@@ -21,6 +26,7 @@
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
     "rxjs": "~7.5.0",
+    "socket.io-client": "^4.7.2",
     "tslib": "^2.3.0",
     "zone.js": "~0.11.4"
   },
@@ -32,6 +38,7 @@
     "@types/jasmine": "~4.0.0",
     "@types/jest": "^28.1.0",
     "@types/node": "^16.18.112",
+    "concurrently": "^8.2.2",
     "jasmine-core": "~4.3.0",
     "jest": "^28.1.0",
     "jest-preset-angular": "^14.0.0",

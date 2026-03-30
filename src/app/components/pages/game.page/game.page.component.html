@@ -1,33 +1,43 @@
 <main class="game-page-container">
-  <header class="logo-container" id="logoContainer">
+  <ng-container>
+    <header class="logo-container" id="logoContainer">
     <img src="../assets/images/ficha-de-poker.png" alt="Logo">
-  </header>
-  <h1 class="game-name">{{ gameName }}</h1>
-
-  <header class="header-buttons">
+    <h1 class="game-name">{{ gameName }}</h1>
     <button
       *ngIf="isAdmin"
       class="custom-button scoring-mode-button"
       (click)="toggleScoringMode()"
     >
-      <fa-icon [icon]="faTableColumns"></fa-icon> Modo de Puntuación
+      <fa-icon [icon]="faTableColumns"></fa-icon> Modo de puntuación
     </button>
     <nav
       *ngIf="isScoringModeVisible"
       class="scoring-mode-dropdown"
+      #scoringDropdown
     >
-      <p (click)="changeScoringMode('fibonacci')" [ngClass]="{'selected': scoringMode === 'fibonacci'}"> Fibonacci</p>
-      <p (click)="changeScoringMode('oneToTen')"[ngClass]="{'selected': scoringMode === 'oneToTen'}" >1 en 1 hasta 10</p>
-      <p (click)="changeScoringMode('twoToTwenty')"[ngClass]="{'selected': scoringMode === 'twoToTwenty'}">2 en 2 hasta 20</p>
+      <p (click)="changeScoringMode('fibonacci')" (keydown.enter)="changeScoringMode('fibonacci')" [ngClass]="{'selected': scoringMode === 'fibonacci'}"> Fibonacci</p>
+      <p (click)="changeScoringMode('oneToTen')" (keydown.enter)="changeScoringMode('oneToTen')" [ngClass]="{'selected': scoringMode === 'oneToTen'}" >1 en 1 hasta 10</p>
+      <p (click)="changeScoringMode('twoToTwenty')" (keydown.enter)="changeScoringMode('twoToTwenty')" [ngClass]="{'selected': scoringMode === 'twoToTwenty'}">2 en 2 hasta 20</p>
     </nav>
-    <div class="user-circle" *ngIf="userName" (click)="toggleRoleChange()" [ngClass]="{'show': isRoleChangeVisible}">
+  </header>
+
+  <header class="header-buttons">
+    <button class="user-circle" *ngIf="userName" (click)="toggleRoleChange()" [ngClass]="{'show': isRoleChangeVisible}">
       <span>{{ getInitials(userName) }}</span>
-    </div>
+    </button>
     <div *ngIf="isRoleChangeVisible" class="role-change-container" [ngClass]="{'show': isRoleChangeVisible}">
-      <p *ngIf="currentUserRole === 'player'" (click)="changeRole()">Cambiar a Espectador</p>
-      <p *ngIf="currentUserRole === 'viwer'" (click)="changeRole()">Cambiar a Jugador</p>
+      <button *ngIf="currentUserRole === 'player'" (click)="changeRole()" class="role-button">Cambiar a Espectador</button>
+      <button *ngIf="currentUserRole === 'viewer'" (click)="changeRole()" class="role-button">Cambiar a Jugador</button>
     </div>
     <button class="custom-button" (click)="openInviteModal()">Invitar jugadores</button>
+    <button
+      *ngIf="isAdmin"
+      class="custom-button new-game-btn"
+      (click)="restartGame()"
+      title="Iniciar nueva partida"
+    >
+      <fa-icon [icon]="faRotateRight"></fa-icon> Nueva Partida
+    </button>
   </header>
 
   <section class="table-container">
@@ -74,21 +84,16 @@
     <ng-container *ngIf="!isLoading">
       <app-button
         [disabled]="!canRevealVotes()"
-        (onClick)="revealVotes()"
+        (onClick)="validateAndRevealVotes()"
         [revealt]="true"
       >
         Revelar Cartas
       </app-button>
   </ng-container>
-  <ng-container *ngIf="isLoading">
-    <div class="loading-dots">
-      <div class="dot"></div>
-      <div class="dot"></div>
-      <div class="dot"></div>
-      <div class="dot"></div>
+  </div>
 
-    </div>
-  </ng-container>
+  <div *ngIf="isLoading && !isGameComplete" class="countdown-overlay">
+    <app-countdown></app-countdown>
   </div>
   <div *ngIf=" isAdmin && isGameComplete" class="restar-cont">
     <app-button
@@ -103,7 +108,7 @@
   <div *ngIf="isInviteModalVisible" class="invite-modal-overlay">
     <div class="invite-modal">
       <div class="invite-modal-header">
-        <span class="invite-modal-title">Invitar jugadores</span>
+        <span class="invite-modal-title">Unirse a la partida</span>
         <button class="close-modal-btn" (click)="closeInviteModal()">×</button>
       </div>
       <div class="invite-modal-content">
@@ -124,4 +129,5 @@
       </div>
     </div>
   </div>
+  </ng-container>
 </main>

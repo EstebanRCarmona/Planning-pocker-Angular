@@ -1,0 +1,39 @@
+.countdown-stage {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  height: auto;
+  position: relative;
+  overflow: visible;
+  padding: 0 10px 0 0;
+  margin-top: -35px;
+}
+
+.countdown-number {
+  font-size: 80px;
+  font-weight: 900;
+  color: #8a2be2;
+  text-shadow: 
+    0 0 20px rgba(138, 43, 226, 0.8),
+    0 0 40px rgba(75, 0, 130, 0.6),
+    2px 2px 4px rgba(0, 0, 0, 0.4);
+  font-family: 'Arial Black', sans-serif;
+  letter-spacing: 8px;
+  white-space: nowrap;
+  filter: drop-shadow(0 0 15px rgba(138, 43, 226, 0.5));
+  line-height: 1;
+  transform-origin: center center;
+}
+
+// Modo oscuro
+@media (prefers-color-scheme: dark) {
+  .countdown-number {
+    color: #ba68c8;
+    text-shadow: 
+      0 0 20px rgba(186, 104, 200, 0.8),
+      0 0 40px rgba(138, 43, 226, 0.6),
+      2px 2px 4px rgba(0, 0, 0, 0.6);
+    filter: drop-shadow(0 0 15px rgba(186, 104, 200, 0.5));
+  }
+}

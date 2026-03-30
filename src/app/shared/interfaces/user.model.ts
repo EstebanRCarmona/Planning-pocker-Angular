@@ -1,8 +1,8 @@
 export enum RolUsuario {
   PLAYER = 'player',
-  VIEWER= 'viwer',
-  ADMIN='admin',
-  VOID='',
+  VIEWER = 'viewer',
+  ADMIN = 'admin',
+  VOID = '',
 }
 
 export interface User {

@@ -8,6 +8,8 @@ export interface Game {
   players: User[];
   state: 'waiting' | 'voted' | 'completed';
   votes: { [userId: string]: number };
+  admin_id?: string;
+  adminId?: string;
 }
 export interface CreateGameRequest {
   name: string;

@@ -3,18 +3,23 @@
     <app-input-atom
       formControlName="name"
       title="Nombre de la partida"
-      placeholder="Ingrese el nombre de la partida">
+      placeholder="Ingrese el nombre de la partida"
+      autofocus>
     </app-input-atom>
-    <section class="error-message" *ngIf="showErrors && gameForm.get('name')?.touched && gameForm.get('name')?.invalid">
-      {{ getErrorMessage() }}
-    </section>
+    <div class="error-message" [ngClass]="{ 'hidden': !showErrors }">
+      {{ errorMessage }}
+    </div>
   </fieldset>
 
   <fieldset class="form-group">
     <app-button
       [type]="'submit'"
-      [disabled]="gameForm.invalid">
-      Crear Partida
+      [disabled]="isLoading">
+      <span *ngIf="!isLoading">Crear Partida</span>
+      <span *ngIf="isLoading" class="loading-text">
+        <span class="spinner"></span>
+        Creando...
+      </span>
     </app-button>
   </fieldset>
 </form>

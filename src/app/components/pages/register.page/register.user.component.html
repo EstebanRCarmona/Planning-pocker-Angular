@@ -4,23 +4,27 @@
   </section>
 
   <article class="container">
-    <div class="custom-box">
+    <div class="custom-box" [ngClass]="{ 'closing': isClosing }">
+      <!-- 🎨 Header dinámico -->
+      <div class="register-header">
+        <h1 class="register-title">{{ headerTitle }}</h1>
+      </div>
+
       <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
         <app-input-atom
           title="Tu nombre"
           type="text"
-          formControlName="name">
+          formControlName="name"
+          autofocus>
         </app-input-atom>
 
-        <div class="validation-space">
-          <div class="error-message"
-            [ngClass]="{'hidden': !showErrors}"
-            *ngIf="isFieldInvalid()">
-            {{ getErrorMessage() }}
+        <div class="validation-space" *ngIf="showErrors">
+          <div class="error-message" [ngClass]="{ 'hidden': !showErrors }">
+            {{ errorMessage }}
           </div>
         </div>
 
-        <div class="role-selector" *ngIf=" noRoleSelector">
+        <div class="role-selector" *ngIf="noRoleSelector">
           <label class="role-option">
             <input type="radio" formControlName="role" value="player" aria-label="Jugador">
             <span class="custom-radio"></span>
@@ -37,9 +41,14 @@
         </ng-template>
 
         <app-button
-          [disabled]="!userForm.valid"
-          (click)="onSubmit()">
-          Continuar
+          [disabled]="isLoading"
+          (click)="onSubmit()"
+          (keydown.enter)="onSubmit()">
+          <span *ngIf="!isLoading">{{ buttonLabel }}</span>
+          <span *ngIf="isLoading" class="loading-text">
+            <span class="spinner"></span>
+            Cargando...
+          </span>
         </app-button>
       </form>
     </div>

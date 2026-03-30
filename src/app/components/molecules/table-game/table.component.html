@@ -43,11 +43,13 @@
       <app-card
         [ngClass]="cardClass || ''"
         [title]="getPlayerForPosition(position) || ''"
+        [isAdmin]="player?.isAdmin"
         [adminTransferOptions]="adminOptions"
         [overlay]="getPlayerCardOverlay(position).overlay"
         [voted]="getPlayerCardOverlay(position).vote"
         [userRole]="isAdmin()"
         (mouseenter)="showAdminTransferTooltip(position)"
+        (keydown)="$event.preventDefault()"
         (mouseleave)="hideAdminTransferTooltip(position)"
         (click)="isAdmin() && passAdmin(position)"
       >
@@ -57,7 +59,7 @@
       </app-card>
     </ng-container>
 
-    <ng-container *ngIf="player?.rol === 'viwer'">
+    <ng-container *ngIf="player?.rol === 'viewer'">
       <section [ngClass]="containerClass || 'circle-container'">
         <div
           class="circle"
@@ -69,6 +71,7 @@
           (mouseenter)="isAdmin() && showAdminTransferTooltip(position)"
           (mouseleave)="isAdmin() && hideAdminTransferTooltip(position)"
           (click)="isAdmin() && passAdmin(position)"
+          (keydown)="$event.preventDefault()"
         >
           <span class="circle-text">
             {{ player?.name?.slice(0, 2) }}
@@ -78,6 +81,7 @@
           </div>
         </div>
         <div class="circle-name">
+          <span *ngIf="player?.isAdmin" class="admin-badge">🔑</span>
           {{ player?.name }}
         </div>
       </section>

@@ -14,52 +14,37 @@ export class CreateGameFormComponent implements OnInit {
   @Output() createGame = new EventEmitter<CreateGameRequest>();
   showErrors = false;
   errorTimeout: any;
+  isLoading: boolean = false;
+  errorMessage: string = 'El nombre de la partida no debe estar vacío';
 
   constructor(private fb: FormBuilder) {
     this.gameForm = this.fb.group({
-      name: ['', [
-        Validators.required,
-        CustomValidators.gameNameValidator
-      ]]
+      name: ['']
     });
   }
 
   ngOnInit() {
-    this.gameForm.get('name')?.valueChanges.subscribe(() => {
-      this.showErrors = true;
-      this.gameForm.get('name')?.markAsTouched();
-      this.resetErrorTimeout();
-    });
-  }
-
-  getErrorMessage(): string {
-    const control = this.gameForm.get('name');
-    if (control?.errors && this.showErrors) {
-      if (control.errors['required']) return NAME_REQUIERED;
-      if (control.errors['minlength']) return NAME_LENGHT;
-      if (control.errors['maxlength']) return NAME_LENGHT;
-      if (control.errors['specialCharacters']) return NAME_NO_SPECIAL_CHARACTERS;
-      if (control.errors['tooManyNumbers']) return NAME_MAX_3_NUMBERS;
-      if (control.errors['onlyNumbers']) return NAME_CANNOT_ONLY_NUMBERS;
-    }
-    return '';
+    // Auto-focus en el input será manejado por autofocus attribute en el HTML
   }
 
   onSubmit(): void {
-    this.showErrors = true;
-    if (this.gameForm.valid) {
+    const name = this.gameForm.get('name')?.value?.trim();
+    if (name) {
+      this.showErrors = false;
+      this.isLoading = true;
       this.createGame.emit(this.gameForm.value);
     } else {
-      this.gameForm.markAllAsTouched();
+      this.showErrors = true;
+      this.startErrorTimeout();
     }
   }
 
-  resetErrorTimeout() {
+  startErrorTimeout(): void {
     if (this.errorTimeout) {
       clearTimeout(this.errorTimeout);
     }
     this.errorTimeout = setTimeout(() => {
       this.showErrors = false;
-    }, 5000);
+    }, 4000);
   }
 }

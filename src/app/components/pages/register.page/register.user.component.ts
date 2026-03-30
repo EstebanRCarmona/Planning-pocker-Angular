@@ -8,8 +8,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { GameCommunicationService } from 'src/app/shared/services/functionalyty-service/comunicationService/comunicationService';
 import { NAME_CANNOT_ONLY_NUMBERS, NAME_MAX_3_NUMBERS, NAME_MAX_LENGTH, NAME_MIN_LENGHT, NAME_NO_SPECIAL_CHARACTERS, NAME_REQUIERED } from 'src/app/shared/Constants';
 import { ToastService } from 'src/app/shared/services/toast/toast.service';
+import { LoadingService } from 'src/app/shared/services/loading.service';
 
-@Component({
+  @Component({
   selector: 'app-register-user',
   templateUrl: './register.user.component.html',
   styleUrls: ['./register.user.component.scss']
@@ -21,6 +22,12 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
   showErrors = false;
   private errorTimeout: any;
   game: Game | null = null;
+  isJoiningExistingGame: boolean = false;
+  headerTitle: string = 'Regístrate';
+  buttonLabel: string = 'Continuar';
+  isLoading: boolean = false;
+  errorMessage: string = 'El nombre no debe estar vacío';
+  isClosing: boolean = false;
 
   get nameControl(): FormControl {
     return this.userForm.get('name') as FormControl;
@@ -35,28 +42,24 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     private gameService: GameService,
     private router: Router,
     private gameCommunicationService: GameCommunicationService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private loadingService: LoadingService
   ) {
     this.userForm = this.fb.group({
-      name: ['', [
-        Validators.required,
-        Validators.minLength(5),
-        Validators.maxLength(20),
-        CustomValidators.gameNameValidator
-      ]],
+      name: [''],
       role: ['player']
     });
   }
 
   private getStoredUsers(): User[] {
-    const usersJson = localStorage.getItem(this.USERS_STORAGE_KEY);
+    const usersJson = sessionStorage.getItem(this.USERS_STORAGE_KEY);
     return usersJson ? JSON.parse(usersJson) : [];
   }
 
   private saveUserToStorage(user: User): void {
     const users = this.getStoredUsers();
     users.push(user);
-    localStorage.setItem(this.USERS_STORAGE_KEY, JSON.stringify(users));
+    sessionStorage.setItem(this.USERS_STORAGE_KEY, JSON.stringify(users));
   }
 
   private getUsersByGameId(gameId: string): User[] {
@@ -68,7 +71,24 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     const gameId = this.route.snapshot.paramMap.get('id');
     const gameName = this.route.snapshot.paramMap.get('name');
 
-    if (gameId) {
+    if (gameId && gameId !== 'undefined' && gameId.length > 0) {
+      if (!this.loadingService.hasLoadingBeenShown()) {
+        this.router.navigate(['/loading'], {
+          queryParams: { 
+            redirect: `/register/${gameName}/${gameId}` 
+          }
+        });
+        return;
+      }
+    }
+
+    // 🎮 Detectar contexto: si hay gameId en la ruta, es unirse a partida existente
+    // gameId debe ser un string válido y no ser 'undefined' literal
+    if (gameId && gameId !== 'undefined' && gameId.length > 0) {
+      this.isJoiningExistingGame = true;
+      this.headerTitle = 'Únete a la partida';
+      this.buttonLabel = 'Unirme';
+      
       this.gameService.getGameById(gameId).subscribe({
         next: (game) => {
           this.game = game;
@@ -77,6 +97,10 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
         error: (err) => {
         }
       });
+    } else {
+      this.isJoiningExistingGame = false;
+      this.headerTitle = 'Regístrate';
+      this.buttonLabel = 'Continuar';
     }
 
     this.nameControl.valueChanges.subscribe(() => {
@@ -105,16 +129,22 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
-    if (this.userForm.valid) {
+    const name = this.userForm.get('name')?.value?.trim();
+    if (name) {
+      this.showErrors = false;
+      this.isLoading = true;
       const gameId = this.route.snapshot.paramMap.get('id') || '';
       const newUser: User = {
         id: this.generateId(),
         gameId: gameId,
-        name: this.userForm.value.name,
+        name: name,
         rol: this.userForm.value.role === 'spectator' ? RolUsuario.VIEWER  : RolUsuario.PLAYER,
         assigned: false
       };
       this.handleCreateUser(newUser);
+    } else {
+      this.showErrors = true;
+      this.startErrorTimeout();
     }
   }
 
@@ -127,10 +157,18 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
           this.saveUserToStorage(newUser);
 
           this.gameCommunicationService.addPlayerToGame(newUser);
-          localStorage.setItem(`userName_${gameId}`, newUser.name);
-          localStorage.setItem('currentUserId', newUser.id);
+          sessionStorage.setItem(`userName_${gameId}`, newUser.name);
+          sessionStorage.setItem('currentUserId', newUser.id);
+          sessionStorage.setItem('currentUserName', newUser.name);  // 🔑 Guardar nombre para sincronización
+          
+          // Limpiar caché de admin status cuando cambia de usuario para forzar recalcular
+          sessionStorage.removeItem(`isAdmin_${gameId}`);
 
-          this.router.navigate(['/game', gameId]);
+          // Animación de salida antes de navegar
+          this.isClosing = true;
+          setTimeout(() => {
+            this.router.navigate(['/game', gameId]);
+          }, 600);
         },
         error: (err) => {
           if (err.message === 'Game is full') {
@@ -143,24 +181,11 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     }
   }
 
-  isFieldInvalid(): boolean {
-    return this.nameControl.invalid && (this.nameControl.touched || this.showErrors);
-  }
-
-  getErrorMessage(): string {
-    if (!this.nameControl.errors || !this.showErrors) return '';
-
-    if (this.nameControl.errors['required']) return NAME_REQUIERED;
-    if (this.nameControl.errors['minlength']) return NAME_MIN_LENGHT;
-    if (this.nameControl.errors['maxlength']) return NAME_MAX_LENGTH;
-    if (this.nameControl.errors['specialCharacters']) return NAME_NO_SPECIAL_CHARACTERS;
-    if (this.nameControl.errors['tooManyNumbers']) return NAME_MAX_3_NUMBERS;
-    if (this.nameControl.errors['onlyNumbers']) return NAME_CANNOT_ONLY_NUMBERS;
-
-    return '';
-  }
-
   private generateId(): string {
-    return Math.random().toString(36).substr(2, 9);
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
   }
 }

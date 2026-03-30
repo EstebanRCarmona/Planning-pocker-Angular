@@ -1,9 +1,12 @@
 <div class="card-container">
-  <div class="card" [ngClass]="{ 'overlay-active': overlay !== null, 'interactive': userRole }" [ngStyle]="getOverlayStyle()" >
+  <div class="card" [ngClass]="{ 'overlay-active': overlay !== null && !shouldShowVote(), 'vote-revealed': shouldShowVote(), 'interactive': userRole }" [ngStyle]="getOverlayStyle()" >
     <div class="overlay"></div>
-    <span class="number" *ngIf="voted !== null">{{ voted }}</span>
+    <span class="number" *ngIf="shouldShowVote()">{{ voted }}</span>
   </div>
-  <div class="card-title">{{ title }}</div>
+  <div class="card-title">
+    <span *ngIf="isAdmin" class="admin-badge">🔑</span>
+    {{ title }}
+  </div>
   <div
     *ngIf="adminTransferOptions"
     class="admin-transfer-tooltip"
