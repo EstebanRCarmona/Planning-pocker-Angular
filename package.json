@@ -6,10 +6,8 @@
     "test:watch": "jest --watch",
     "start": "ng serve",
     "dev": "concurrently \"cd server && npm run dev\" \"ng serve\"",
-    "build": "ng build && cd server && npm run build",
-    "server:install": "cd server && npm install",
-    "vercel:build": "npm run build",
-    "vercel:start": "cd server && npm start"
+    "build": "npm --prefix server install && ng build && npm --prefix server run build",
+    "server:install": "cd server && npm install"
   },
   "private": true,
   "dependencies": {
