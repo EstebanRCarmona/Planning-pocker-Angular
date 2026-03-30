@@ -1,11 +1,10 @@
 {
   "version": 2,
-  "buildCommand": "node build-vercel.js",
-  "outputDirectory": "server/dist",
+  "public": "dist/planning-poker",
+  "buildCommand": "npm run build",
   "env": {
     "NODE_ENV": "production"
   },
-  "regions": ["iad1"],
-  "installCommand": "npm install && npm --prefix server install"
+  "regions": ["iad1"]
 }
 

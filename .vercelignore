@@ -14,3 +14,7 @@ setup-jest.ts
 .editorconfig
 Procfile
 SUPABASE_SETUP.sql
+server/src
+server/tsconfig.json
+build.sh
+build-vercel.js

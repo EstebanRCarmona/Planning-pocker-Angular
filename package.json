@@ -7,8 +7,9 @@
     "start": "node server/dist/index.js",
     "start:prod": "node server/dist/index.js",
     "dev": "concurrently \"cd server && npm run dev\" \"ng serve\"",
-    "build": "ng build --configuration production && npm --prefix server install && npm --prefix server run build",
-    "server:install": "cd server && npm install"
+    "build": "ng build --configuration production",
+    "server:install": "cd server && npm install",
+    "build:full": "ng build --configuration production && npm --prefix server install && npm --prefix server run build"
   },
   "private": true,
   "dependencies": {
