@@ -4,7 +4,7 @@
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",
-    "start": "node server.js",
+    "start": "node server/dist/index.js",
     "start:prod": "node server/dist/index.js",
     "dev": "concurrently \"cd server && npm run dev\" \"ng serve\"",
     "build": "ng build --configuration production && npm --prefix server install && npm --prefix server run build",

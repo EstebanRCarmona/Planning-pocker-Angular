@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "tsc && node dist/index.js",
-    "build": "tsc && node -e \"const fs=require('fs'); const path=require('path'); const src='../dist/planning-poker'; const dst='dist/public'; if(fs.existsSync(src)){fs.cpSync(src, dst, {recursive:true});console.log('Frontend copied to dist/public');}\"",
+    "build": "tsc && node --input-type=module -e \"import fs from 'fs'; import path from 'path'; import { fileURLToPath } from 'url'; const __dirname = path.dirname(fileURLToPath(import.meta.url)); const src = path.join(__dirname, '../dist/planning-poker'); const dst = path.join(__dirname, 'dist/public'); if(fs.existsSync(src)){fs.cpSync(src, dst, {recursive:true});console.log('Frontend copied to dist/public');}else{console.log('Frontend dist not found at', src);}\"",
     "watch": "tsc --watch"
   },
   "dependencies": {

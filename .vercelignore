@@ -2,15 +2,12 @@ node_modules
 .git
 .env.local
 .env
-server/src
-server/tsconfig.json
 .angular
 .karma
 **/*.spec.ts
 **/*.spec.scss
 README.md
 karma.conf.js
-angular.json
 jest.config.js
 setup-jest.ts
 .gitignore

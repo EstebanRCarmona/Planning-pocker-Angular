@@ -1,9 +1,11 @@
 {
   "version": 2,
-  "buildCommand": "bash build.sh",
+  "buildCommand": "node build-vercel.js",
   "outputDirectory": "server/dist",
   "env": {
     "NODE_ENV": "production"
   },
-  "regions": ["iad1"]
+  "regions": ["iad1"],
+  "installCommand": "npm install && npm --prefix server install"
 }
+
