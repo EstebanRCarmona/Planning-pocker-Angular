@@ -2,7 +2,7 @@
 set -e
 
 echo "🔨 Building Angular frontend..."
-npx ng build --configuration production
+./node_modules/.bin/ng build --configuration production
 
 echo "📦 Installing server dependencies..."
 npm --prefix server install
