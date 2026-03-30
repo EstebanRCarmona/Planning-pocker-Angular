@@ -1,12 +1,11 @@
 {
   "version": 2,
   "buildCommand": "npm --prefix server install && ng build && npm --prefix server run build",
-  "builds": [
-    {
-      "src": "server/dist/index.js",
-      "use": "@vercel/node"
+  "functions": {
+    "server/dist/index.js": {
+      "maxDuration": 60
     }
-  ],
+  },
   "routes": [
     {
       "src": "/api/(.*)",
