@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://planning-pocker-angular-production.up.railway.app',
-  socketUrl: 'https://planning-pocker-angular-production.up.railway.app'
+  apiUrl: 'https://planning-pocker-vle8.onrender.com',
+  socketUrl: 'https://planning-pocker-vle8.onrender.com'
 };
