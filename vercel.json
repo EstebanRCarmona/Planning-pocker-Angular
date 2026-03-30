@@ -4,7 +4,8 @@
   "outputDirectory": "dist",
   "env": {
     "NODE_ENV": "production",
-    "PORT": "3000"
+    "PORT": "3000",
+    "npm_config_legacy_peer_deps": "true"
   },
   "routes": [
     {
