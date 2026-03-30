@@ -1,11 +1,10 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
+  "outputDirectory": ".",
   "env": {
     "NODE_ENV": "production",
-    "PORT": "3000",
-    "npm_config_legacy_peer_deps": "true"
+    "PORT": "3000"
   },
   "routes": [
     {
