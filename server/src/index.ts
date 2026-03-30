@@ -34,7 +34,7 @@ app.use(cors());
 app.use(express.json());
 
 // 🎯 SERVIR ARCHIVOS ESTÁTICOS DEL FRONTEND
-const frontendPath = path.join(__dirname, '../../dist/planning-pocker-angular/browser');
+const frontendPath = path.join(__dirname, '../../dist/planning-poker');
 app.use(express.static(frontendPath));
 
 // Initialize Socket.IO service
