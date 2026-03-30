@@ -34,8 +34,7 @@ app.use(cors());
 app.use(express.json());
 
 // 🎯 SERVIR ARCHIVOS ESTÁTICOS DEL FRONTEND
-// Vercel: uses process.cwd() for proper path resolution in production
-const frontendPath = path.join(process.cwd(), 'dist/planning-poker');
+const frontendPath = path.join(__dirname, './public');
 app.use(express.static(frontendPath));
 
 // Initialize Socket.IO service

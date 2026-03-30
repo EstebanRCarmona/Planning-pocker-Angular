@@ -1,14 +1,5 @@
 {
   "version": 2,
   "buildCommand": "npm --prefix server install && ng build && npm --prefix server run build",
-  "public": false,
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  "outputDirectory": "server/dist"
 }
