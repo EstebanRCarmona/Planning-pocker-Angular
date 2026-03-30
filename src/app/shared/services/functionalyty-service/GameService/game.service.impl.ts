@@ -6,12 +6,13 @@ import { RolUsuario, User } from "src/app/shared/interfaces/user.model";
 import { HttpClient } from '@angular/common/http';
 import { SocketService } from '../socketio/socket.service';
 import { GameCommunicationService } from '../comunicationService/comunicationService';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class GameService {
-  private apiUrl = 'http://localhost:3000/api';
+  private apiUrl = `${environment.apiUrl}/api`;
 
   constructor(
     private http: HttpClient,

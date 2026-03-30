@@ -1,13 +1,14 @@
 import { Injectable } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { Subject } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class SocketService {
   private socket: Socket | null = null;
-  private serverUrl = 'http://localhost:3000';
+  private serverUrl: string;
 
   private playerJoinedSubject = new Subject<any>();
   private votesUpdatedSubject = new Subject<any>();
@@ -38,17 +39,7 @@ export class SocketService {
   startVotesCountdown$ = this.startVotesCountdownSubject.asObservable();
 
   constructor() {
-    if (typeof window !== 'undefined' && window.location) {
-      const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-      
-      if (isProduction) {
-        const protocol = window.location.protocol;
-        const host = window.location.host;
-        this.serverUrl = `${protocol}//${host}`;
-      } else {
-        this.serverUrl = 'http://localhost:3000';
-      }
-    }
+    this.serverUrl = environment.socketUrl;
   }
 
   connect(): void {
