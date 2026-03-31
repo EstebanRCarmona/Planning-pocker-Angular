@@ -15,7 +15,7 @@
           title="Tu nombre"
           type="text"
           formControlName="name"
-          autofocus>
+          [autofocus]="true">
         </app-input-atom>
 
         <div class="validation-space" *ngIf="showErrors">

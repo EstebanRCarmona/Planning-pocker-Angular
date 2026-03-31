@@ -3,7 +3,6 @@ import { Game } from 'src/app/shared/interfaces/game.model';
 import { RolUsuario, User } from '../../../shared/interfaces/user.model';
 import { Component, EventEmitter, OnInit, OnDestroy, Output } from '@angular/core';
 import { FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
-import { CustomValidators } from 'src/app/shared/services/Validators/CustomValidators';
 import { ActivatedRoute, Router } from '@angular/router';
 import { GameCommunicationService } from 'src/app/shared/services/functionalyty-service/comunicationService/comunicationService';
 import { NAME_CANNOT_ONLY_NUMBERS, NAME_MAX_3_NUMBERS, NAME_MAX_LENGTH, NAME_MIN_LENGHT, NAME_NO_SPECIAL_CHARACTERS, NAME_REQUIERED } from 'src/app/shared/Constants';
@@ -68,6 +67,11 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    const savedName = localStorage.getItem('savedUserName');
+    if (savedName) {
+      this.userForm.patchValue({ name: savedName });
+    }
+
     const gameId = this.route.snapshot.paramMap.get('id');
     const gameName = this.route.snapshot.paramMap.get('name');
 
@@ -131,6 +135,7 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
   onSubmit(): void {
     const name = this.userForm.get('name')?.value?.trim();
     if (name) {
+      localStorage.setItem('savedUserName', name);
       this.showErrors = false;
       this.isLoading = true;
       const gameId = this.route.snapshot.paramMap.get('id') || '';
@@ -155,15 +160,13 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
       this.gameService.joinGame(gameId, newUser).subscribe({
         next: (updatedGame) => {
           this.saveUserToStorage(newUser);
-
           this.gameCommunicationService.addPlayerToGame(newUser);
           sessionStorage.setItem(`userName_${gameId}`, newUser.name);
           sessionStorage.setItem('currentUserId', newUser.id);
           sessionStorage.setItem('currentUserName', newUser.name);  // 🔑 Guardar nombre para sincronización
-          
+          localStorage.setItem('savedUserName', newUser.name); // <-- Guardar también en localStorage
           // Limpiar caché de admin status cuando cambia de usuario para forzar recalcular
           sessionStorage.removeItem(`isAdmin_${gameId}`);
-
           // Animación de salida antes de navegar
           this.isClosing = true;
           setTimeout(() => {

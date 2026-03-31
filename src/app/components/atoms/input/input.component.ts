@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, forwardRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, forwardRef, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 
 @Component({
@@ -13,11 +13,15 @@ import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
     }
   ]
 })
-export class InputAtomComponent implements ControlValueAccessor {
+export class InputAtomComponent implements ControlValueAccessor, AfterViewInit {
   @Input() title: string = '';
   @Input() placeholder: string = '';
+  @Input() autofocus = false;
+  @Input() selectOnFocus = true;
   @Output() valueChanged: EventEmitter<string> = new EventEmitter();
   @Input() error: boolean = false;
+
+  @ViewChild('inputField') inputField!: ElementRef<HTMLInputElement>;
 
   inputValue: string = '';
 
@@ -39,7 +43,20 @@ export class InputAtomComponent implements ControlValueAccessor {
   setDisabledState?(isDisabled: boolean): void {
   }
 
-  onInputChange(): void {
+  ngAfterViewInit(): void {
+    if (this.autofocus && this.inputField?.nativeElement) {
+      setTimeout(() => {
+        this.inputField.nativeElement.focus();
+        if (this.selectOnFocus) {
+          this.inputField.nativeElement.select();
+        }
+      }, 0);
+    }
+  }
+
+  onInputChange(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.inputValue = value;
     this.onChange(this.inputValue);
     this.valueChanged.emit(this.inputValue);
   }

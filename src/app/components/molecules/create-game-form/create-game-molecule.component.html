@@ -4,7 +4,7 @@
       formControlName="name"
       title="Nombre de la partida"
       placeholder="Ingrese el nombre de la partida"
-      autofocus>
+      [autofocus]="true">
     </app-input-atom>
     <div class="error-message" [ngClass]="{ 'hidden': !showErrors }">
       {{ errorMessage }}

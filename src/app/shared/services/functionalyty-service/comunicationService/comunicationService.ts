@@ -99,20 +99,21 @@ export class GameCommunicationService {
         );
         
         if (serverPlayer) {
-          if (!currentPlayer || currentPlayer.id !== serverPlayer.id) {
-            // Crear o actualizar el usuario actual con datos del servidor
-            const updatedPlayer: User = {
-              id: serverPlayer.id,
-              gameId: serverPlayer.game_id,
-              name: serverPlayer.name,
-              rol: serverPlayer.role === 'admin' ? RolUsuario.ADMIN : RolUsuario.PLAYER,
-              assigned: false
-            };
-            sessionStorage.setItem('currentPlayer', JSON.stringify(updatedPlayer));
-            sessionStorage.setItem('currentUserId', serverPlayer.id);
-            sessionStorage.setItem('currentUserName', serverPlayer.name);
-            this.playerSubject.next(updatedPlayer);
-          }
+         const updatedPlayer: User = {
+            id: serverPlayer.id,
+            gameId: serverPlayer.game_id,
+            name: serverPlayer.name,
+            rol:
+              serverPlayer.role === 'admin' ? RolUsuario.ADMIN :
+              serverPlayer.role === 'viewer' ? RolUsuario.VIEWER :
+              serverPlayer.role === 'spectator' ? RolUsuario.VIEWER :
+              RolUsuario.PLAYER,
+            assigned: false
+          };
+          sessionStorage.setItem('currentPlayer', JSON.stringify(updatedPlayer));
+          sessionStorage.setItem('currentUserId', serverPlayer.id);
+          sessionStorage.setItem('currentUserName', serverPlayer.name);
+          this.playerSubject.next(updatedPlayer);
         }
       }
     });

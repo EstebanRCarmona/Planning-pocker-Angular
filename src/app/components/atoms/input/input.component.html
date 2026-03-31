@@ -4,7 +4,9 @@
     type="text"
     class="input-field"
     [class.error]="error"
-    [(ngModel)]="inputValue"
-    (ngModelChange)="onInputChange()"
+    [value]="inputValue"
+    #inputField
+    [attr.autofocus]="autofocus ? true : null"
+    (input)="onInputChange($event)"
   />
 </div>
