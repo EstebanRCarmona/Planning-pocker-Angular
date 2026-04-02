@@ -23,6 +23,21 @@ export class SocketIOService {
   private setupEventHandlers() {
     this.io.on('connection', (socket: Socket) => {
 
+      socket.on('throw-object', async (data: any) => {
+        try {
+          const { gameId, fromPlayerId, toPlayerId, objectType } = data;
+          // Emitir a todos los clientes del room el evento de animación
+          this.io.to(gameId).emit('object-thrown', {
+            fromPlayerId,
+            toPlayerId,
+            objectType,
+            gameId
+          });
+        } catch (error) {
+          socket.emit('error', { message: 'Failed to throw object', error: String(error) });
+        }
+      });
+
       // Join game
       socket.on('join-game', async (data: any) => {
         try {

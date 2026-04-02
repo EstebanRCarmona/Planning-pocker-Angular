@@ -7,6 +7,13 @@ import { SocketService } from '../socketio/socket.service';
   providedIn: 'root'
 })
 export class GameCommunicationService {
+      // Exponer observable para animaciones de objetos lanzados
+      get objectThrown$() {
+        return this.socketService.objectThrown$;
+      }
+    throwObject(gameId: string, fromPlayerId: string, toPlayerId: string, objectType: 'heart' | 'paper' | 'star') {
+      this.socketService.throwObject(gameId, fromPlayerId, toPlayerId, objectType);
+    }
   readonly playerSubject = new BehaviorSubject<User | null>(null);
   player$ = this.playerSubject.asObservable();
   

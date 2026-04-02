@@ -24,6 +24,9 @@ export class SocketService {
   private gameDeletedSubject = new Subject<any>();
   private startVotesCountdownSubject = new Subject<any>();
 
+  private objectThrownSubject = new Subject<any>();
+  objectThrown$ = this.objectThrownSubject.asObservable();
+
   playerJoined$ = this.playerJoinedSubject.asObservable();
   votesUpdated$ = this.votesUpdatedSubject.asObservable();
   votesRevealed$ = this.votesRevealedSubject.asObservable();
@@ -59,6 +62,11 @@ export class SocketService {
 
   private setupSocketListeners(): void {
     if (!this.socket) return;
+
+    // Escuchar evento de objeto lanzado
+    this.socket.on('object-thrown', (data: any) => {
+      this.objectThrownSubject.next(data);
+    });
 
     this.socket.on('player-joined', (data: any) => {
       this.playerJoinedSubject.next(data);
@@ -117,12 +125,28 @@ export class SocketService {
     if (!this.socket) {
       this.connect();
     }
-
     this.socket?.emit('join-game', {
       gameId,
       playerId,
       playerName,
       playerRole,
+    });
+  }
+
+  /**
+   * Emitir evento para lanzar objeto a otro jugador
+   */
+  throwObject(
+    gameId: string,
+    fromPlayerId: string,
+    toPlayerId: string,
+    objectType: 'heart' | 'paper' | 'star'
+  ): void {
+    this.socket?.emit('throw-object', {
+      gameId,
+      fromPlayerId,
+      toPlayerId,
+      objectType
     });
   }
 

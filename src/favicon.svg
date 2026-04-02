@@ -1,0 +1,43 @@
+<svg width="680" height="680" viewBox="0 0 680 680" xmlns="http://www.w3.org/2000/svg">
+<rect width="680" height="680" fill="#330072"/>
+
+<g transform="translate(340,340)" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+
+  <circle r="295" stroke-width="5"/>
+  <circle r="285" stroke-width="1.5"/>
+
+  <circle r="220" stroke-width="6"/>
+  <circle r="210" stroke-width="2"/>
+
+  <circle r="155" stroke-width="4"/>
+  <circle r="146" stroke-width="1.5"/>
+
+  <g id="dia">
+    <polygon points="0,-12 7,0 0,12 -7,0" stroke-width="1.5"/>
+  </g>
+  <use href="#dia" transform="translate(0,-252)"/>
+  <use href="#dia" transform="translate(0,252)"/>
+  <use href="#dia" transform="translate(252,0)"/>
+  <use href="#dia" transform="translate(-252,0)"/>
+  <use href="#dia" transform="rotate(45) translate(0,-252)"/>
+  <use href="#dia" transform="rotate(45) translate(0,252)"/>
+  <use href="#dia" transform="rotate(45) translate(252,0)"/>
+  <use href="#dia" transform="rotate(45) translate(-252,0)"/>
+
+  <path d="M -100,70 A 120,60 0 0,0 100,70" stroke-width="1.5"/>
+  <circle r="3" cx="-100" cy="70" stroke-width="0" fill="white"/>
+  <circle r="3" cx="100" cy="70" stroke-width="0" fill="white"/>
+
+  <text
+    x="0" y="30"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-weight="700"
+    font-size="148"
+    fill="white"
+    stroke="none"
+    letter-spacing="4">PK</text>
+
+</g>
+</svg>

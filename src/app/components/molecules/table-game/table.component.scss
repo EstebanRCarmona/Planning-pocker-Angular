@@ -1,3 +1,303 @@
+// Contenedor envolvente para jugadores con tooltip
+.player-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.player-wrapper:hover .throw-tooltip {
+  display: flex !important;
+}
+
+// Tooltip de lanzar objeto 
+.throw-tooltip {
+  position: absolute;
+  bottom: -3rem;
+  left: 50%;
+  transform: translateX(-50%) !important;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%);
+  border: 1px solid rgba(102, 126, 234, 0.6);
+  color: rgba(255, 255, 255, 1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  padding: 6px 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  animation: slideUpTooltip 0.3s ease-out;
+  backdrop-filter: none;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.throw-btn {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.throw-btn:hover {
+  transform: scale(1.25) translateY(-2px);
+  background: rgba(102, 126, 234, 0.15);
+}
+
+.throw-btn.heart:hover { color: #ff6b9d; }
+.throw-btn.rock:hover { color: #c0c0c0; }
+.throw-btn.star:hover { color: #ffd700; }
+
+@keyframes slideUpTooltip {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.global-throw-anim-container {
+  pointer-events: none;
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1300;
+  --target-x: 0px;
+  --target-y: 0px;
+}
+
+.throw-anim {
+  position: fixed;
+  left: 0;
+  top: 0;
+  font-size: 2.2rem;
+  opacity: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+  transform-origin: center center;
+  will-change: transform, left, top, opacity;
+}
+
+// Animación de impacto para corazón 
+@keyframes impact-heart {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: brightness(1) drop-shadow(0 0 2px rgba(255, 107, 157, 0.3));
+  }
+  10% {
+    transform: scale(1.9) rotate(0deg);
+    filter: brightness(1.15) drop-shadow(0 0 12px rgba(255, 107, 157, 0.6));
+  }
+  17% {
+    transform: scale(0.75) rotate(0deg);
+    filter: brightness(0.9) drop-shadow(0 0 2px rgba(255, 107, 157, 0.1));
+  }
+  30% {
+    transform: scale(2) rotate(0deg);
+    filter: brightness(1.15) drop-shadow(0 0 12px rgba(255, 107, 157, 0.6));
+  }
+  37% {
+    transform: scale(0.7) rotate(0deg);
+    filter: brightness(0.9) drop-shadow(0 0 2px rgba(255, 107, 157, 0.1));
+  }
+  50% {
+    transform: scale(1.95) rotate(0deg);
+    filter: brightness(1.15) drop-shadow(0 0 12px rgba(255, 107, 157, 0.6));
+  }
+  57% {
+    transform: scale(0.72) rotate(0deg);
+    filter: brightness(0.9) drop-shadow(0 0 2px rgba(255, 107, 157, 0.1));
+  }
+  75% {
+    transform: scale(0.6) rotate(0deg);
+    opacity: 0.6;
+    filter: brightness(0.95) drop-shadow(0 0 2px rgba(255, 107, 157, 0.15));
+  }
+  100% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+    filter: brightness(0) drop-shadow(0 0 0px rgba(255, 107, 157, 0));
+  }
+}
+
+// Animación de impacto para bomba (explosión)
+@keyframes impact-bomb {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: brightness(1) saturate(1);
+  }
+  10% {
+    transform: scale(1.3) rotate(45deg);
+    filter: brightness(1.4) saturate(1.2);
+  }
+  25% {
+    transform: scale(1.6) rotate(90deg);
+    opacity: 1;
+    filter: brightness(1.8) saturate(1.4);
+  }
+  50% {
+    transform: scale(2) rotate(180deg);
+    opacity: 0.8;
+    filter: brightness(2) saturate(1.6) drop-shadow(0 0 20px rgba(255, 100, 0, 0.8));
+  }
+  75% {
+    transform: scale(1.2) rotate(270deg);
+    opacity: 0.4;
+    filter: brightness(1.2) saturate(0.8) drop-shadow(0 0 10px rgba(255, 100, 0, 0.4));
+  }
+  100% {
+    transform: scale(0.05) rotate(360deg);
+    opacity: 0;
+    filter: brightness(0) saturate(0) drop-shadow(0 0 0px rgba(255, 100, 0, 0));
+  }
+}
+
+// Animación de impacto para estrella (destello brillante)
+@keyframes impact-star {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 0px rgba(255, 215, 0, 0)) brightness(1);
+  }
+  10% {
+    transform: scale(1.4) rotate(45deg);
+    filter: drop-shadow(0 0 20px rgba(255, 215, 0, 1)) brightness(1.5);
+  }
+  30% {
+    transform: scale(1.8) rotate(90deg);
+    filter: drop-shadow(0 0 40px rgba(255, 215, 0, 1)) brightness(1.8);
+  }
+  50% {
+    transform: scale(1.5) rotate(180deg);
+    filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.8)) brightness(1.4);
+  }
+  75% {
+    transform: scale(0.8) rotate(270deg);
+    opacity: 0.6;
+    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.4)) brightness(0.8);
+  }
+  100% {
+    transform: scale(0) rotate(360deg);
+    opacity: 0;
+    filter: drop-shadow(0 0 0px rgba(255, 215, 0, 0)) brightness(0);
+  }
+}
+
+// Animación de impacto para múltiples objetos
+@keyframes impact-multiple {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.6);
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+// Estilos específicos por tipo de objeto en fase de impacto
+.throw-anim.impact.heart {
+  animation: impact-heart 2.5s ease-out forwards;
+}
+
+.throw-anim.impact.paper {
+  animation: impact-bomb 1s ease-out forwards;
+}
+
+.throw-anim.impact.star {
+  animation: impact-star 1s ease-out forwards;
+}
+
+// Animaciones para múltiples objetos (cambiar posición)
+.throw-anim.total-2.seq-1 {
+  --seq-offset-x: -20px;
+  --seq-offset-y: -15px;
+}
+
+.throw-anim.total-2.seq-2 {
+  --seq-offset-x: 20px;
+  --seq-offset-y: -15px;
+}
+
+.throw-anim.total-3.seq-1 {
+  --seq-offset-x: -25px;
+  --seq-offset-y: -20px;
+}
+
+.throw-anim.total-3.seq-2 {
+  --seq-offset-x: 0px;
+  --seq-offset-y: -20px;
+  z-index: 10;
+}
+
+.throw-anim.total-3.seq-3 {
+  --seq-offset-x: 25px;
+  --seq-offset-y: -20px;
+}
+
+.throw-anim.total-4.seq-1 {
+  --seq-offset-x: -30px;
+  --seq-offset-y: -25px;
+}
+
+.throw-anim.total-4.seq-2 {
+  --seq-offset-x: -10px;
+  --seq-offset-y: -25px;
+}
+
+.throw-anim.total-4.seq-3 {
+  --seq-offset-x: 10px;
+  --seq-offset-y: -25px;
+}
+
+.throw-anim.total-4.seq-4 {
+  --seq-offset-x: 30px;
+  --seq-offset-y: -25px;
+}
+
+.throw-anim.total-5.seq-1 {
+  --seq-offset-x: -35px;
+  --seq-offset-y: -30px;
+}
+
+.throw-anim.total-5.seq-2 {
+  --seq-offset-x: -15px;
+  --seq-offset-y: -30px;
+}
+
+.throw-anim.total-5.seq-3 {
+  --seq-offset-x: 0px;
+  --seq-offset-y: -35px;
+  z-index: 10;
+}
+
+.throw-anim.total-5.seq-4 {
+  --seq-offset-x: 15px;
+  --seq-offset-y: -30px;
+}
+
+.throw-anim.total-5.seq-5 {
+  --seq-offset-x: 35px;
+  --seq-offset-y: -30px;
+}
+
+// Aplicar los offsets en la animación de impacto
+.throw-anim.impact {
+  transform: translate(var(--seq-offset-x, 0), var(--seq-offset-y, 0)) !important;
+}
 .table-container {
   display: flex;
   flex-direction: column;
@@ -171,22 +471,20 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  margin-left: 8rem;
-  margin-bottom: 0px;
-  background-color: #333;
+  bottom: -5.5rem;
+  background-color: rgba(51, 51, 51, 0.95);
   color: white;
   padding: 8px 12px;
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   white-space: nowrap;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
-
-  z-index: 1000;
+  gap: 4px;
+  z-index: 10000;
   cursor: pointer;
-
+  border: 1px solid rgba(255, 255, 255, 0.1);
   transition: background-color 0.3s ease;
 }
 

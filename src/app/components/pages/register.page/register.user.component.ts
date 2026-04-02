@@ -5,7 +5,6 @@ import { Component, EventEmitter, OnInit, OnDestroy, Output } from '@angular/cor
 import { FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { GameCommunicationService } from 'src/app/shared/services/functionalyty-service/comunicationService/comunicationService';
-import { NAME_CANNOT_ONLY_NUMBERS, NAME_MAX_3_NUMBERS, NAME_MAX_LENGTH, NAME_MIN_LENGHT, NAME_NO_SPECIAL_CHARACTERS, NAME_REQUIERED } from 'src/app/shared/Constants';
 import { ToastService } from 'src/app/shared/services/toast/toast.service';
 import { LoadingService } from 'src/app/shared/services/loading.service';
 

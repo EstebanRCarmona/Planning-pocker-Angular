@@ -11,6 +11,55 @@ import { GameService } from 'src/app/shared/services/functionalyty-service/GameS
   styleUrls: ['./table.component.scss']
 })
 export class TableGameComponent implements OnInit, OnDestroy {
+    // Tooltip de lanzar objeto
+    showThrowTooltip: { [position: string]: boolean } = {};
+    tooltipHideTimers: { [position: string]: any } = {};
+    // Animaciones activas
+    activeAnimations: Array<{
+      fromPosition: string;
+      toPosition: string;
+      objectType: 'heart' | 'paper' | 'star';
+      id: string;
+      direction?: 'left' | 'right-direction';
+      sequence?: number; // Número de objeto en la secuencia
+      totalInSequence?: number; // Total de objetos lanzados a este jugador
+      isImpact?: boolean; // Si está en fase de impacto
+      endX?: number; 
+      endY?: number; 
+    }> = [];
+    
+    // Rastrear objetos lanzados a cada jugador para calcular secuencias
+    private objectSequenceMap: { [position: string]: number } = {};
+
+    showThrowTooltipFor(position: string) {
+      const player = this.getPlayerByID(position);
+      const currentUserId = sessionStorage.getItem('currentUserId');
+      // Cancelar el temporizador de ocultamiento si existe
+      if (this.tooltipHideTimers[position]) {
+        clearTimeout(this.tooltipHideTimers[position]);
+        this.tooltipHideTimers[position] = null;
+      }
+      if (player?.userId && player.userId !== currentUserId) {
+        this.showThrowTooltip[position] = true;
+        this.changeDetectorRef.detectChanges();
+      }
+    }
+    
+    hideThrowTooltip(position: string) {
+      this.tooltipHideTimers[position] = setTimeout(() => {
+        this.showThrowTooltip[position] = false;
+        this.changeDetectorRef.detectChanges();
+      }, 250);
+    }
+
+    throwObjectToPlayer(position: string, objectType: 'heart' | 'paper' | 'star', event: MouseEvent) {
+      event.stopPropagation();
+      const toPlayer = this.getPlayerByID(position);
+      const fromPlayerId = sessionStorage.getItem('currentUserId');
+      if (!toPlayer?.userId || !this.gameId || !fromPlayerId || toPlayer.userId === fromPlayerId) return;
+      this.gameCommunicationService.throwObject(this.gameId, fromPlayerId, toPlayer.userId, objectType);
+    }
+
   @Input() currentUserVote: { vote: number | null, id: string | null }= { vote: null, id: null };
   private readonly TABLE_STATE_KEY = 'game_table_state';
   private gameId: string | null = null;
@@ -19,6 +68,7 @@ export class TableGameComponent implements OnInit, OnDestroy {
   userName:string="";
   showAdminTransferOption = false;
   adminTransferOptions: { [key: string]: boolean } = {};
+  private adminTransferHideTimers: { [position: string]: any } = {};
   adminPlayerId: string | null = null;
 
   players: {
@@ -53,6 +103,76 @@ export class TableGameComponent implements OnInit, OnDestroy {
    }
 
   ngOnInit(): void {
+        // Suscripción para animaciones de objetos lanzados
+        this.subscriptions.add(
+          this.gameCommunicationService.objectThrown$.subscribe((data: any) => {
+            console.log(`[DEBUG] Objeto lanzado:`, data);
+            const fromPlayer = this.players.find(p => p.userId === data.fromPlayerId);
+            const toPlayer = this.players.find(p => p.userId === data.toPlayerId);
+            console.log(`[DEBUG] From: ${fromPlayer?.name}, To: ${toPlayer?.name}`);
+            
+            if (fromPlayer && toPlayer) {
+              // Calcular secuencia de objetos para este jugador
+              const toPosition = toPlayer.id;
+              this.objectSequenceMap[toPosition] = (this.objectSequenceMap[toPosition] || 0) + 1;
+              const sequence = this.objectSequenceMap[toPosition];
+              
+              // Rastrear cuántos objetos se lanzarán en esta secuencia (aprox 200ms de ventana)
+              let totalInSequence = 1;
+              const checkSequence = () => {
+                const currentCount = this.activeAnimations.filter(a => a.toPosition === toPosition && !a.isImpact).length + 1;
+                totalInSequence = Math.max(currentCount, totalInSequence);
+              };
+              checkSequence();
+              
+              const animId = `${Date.now()}_${Math.random()}`;
+              const direction = sequence % 2 === 1 ? 'left' : 'right-direction';
+              
+              console.log(`[DEBUG] Creando animación ${animId}, secuencia ${sequence}, dirección ${direction}`);
+              
+              // Fase 1: Animación de vuelo (parábola)
+              const anim = {
+                fromPosition: fromPlayer.id,
+                toPosition: toPlayer.id,
+                objectType: data.objectType,
+                id: animId,
+                direction: direction as 'left' | 'right-direction',
+                sequence: sequence,
+                totalInSequence: totalInSequence,
+                isImpact: false,
+                endX: 0,  
+                endY: 0  
+              };
+              this.activeAnimations.push(anim);
+              this.changeDetectorRef.detectChanges();
+              
+              setTimeout(() => {
+                this.createCustomThrowAnimation(animId, toPlayer.id, direction);
+              }, 10);
+              
+              // Fase 2: Transición a impacto después del vuelo (1.5 segundos)
+              setTimeout(() => {
+                console.log(`[DEBUG] Cambiando a impacto para ${animId}`);
+                const anim = this.activeAnimations.find(a => a.id === animId);
+                if (anim) {
+                  anim.isImpact = true;
+                  this.changeDetectorRef.detectChanges();
+                  
+                  // Aplicar la animación de impacto
+                  setTimeout(() => {
+                    this.applyImpactAnimation(animId, anim.objectType, anim.endX || 0, anim.endY || 0);
+                  }, 0);
+                }
+              }, 1500);
+              
+              setTimeout(() => {
+                console.log(`[DEBUG] Removiendo animación ${animId}`);
+                this.activeAnimations = this.activeAnimations.filter(a => a.id !== animId);
+                this.changeDetectorRef.detectChanges();
+              }, 2100);
+            }
+          })
+        );
     this.subscriptions.add(
       this.gameCommunicationService.clearOverlays$.subscribe(() => {
         this.clearAllPlayerOverlays();
@@ -602,6 +722,337 @@ export class TableGameComponent implements OnInit, OnDestroy {
     return false;
   }
 
+  // 🎮 Obtener la posición del jugador destino para la animación global
+  getTargetPosition(position: string): { x: number; y: number } {
+    try {
+      const playerElement = document.querySelector(`[data-player-position="${position}"]`);
+      if (!playerElement) {
+        console.warn(`[DEBUG] Elemento de jugador no encontrado: ${position}`);
+        return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      }
+
+      const rect = playerElement.getBoundingClientRect();
+      const result = {
+        x: rect.left + rect.width / 2 - 20,
+        y: rect.top + rect.height / 2
+      };
+      
+      console.log(`[DEBUG] Posición de ${position}: x=${result.x}, y=${result.y}`);
+      return result;
+    } catch (e) {
+      console.error(`[DEBUG] Error obteniendo posición:`, e);
+      return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    }
+  }
+
+  // 🎮 Aplicar animación de impacto según el tipo de objeto
+  private applyImpactAnimation(animId: string, objectType: string, endX: number, endY: number): void {
+    const animElement = document.querySelector(`[data-anim-id="${animId}"]`) as HTMLElement;
+    if (!animElement) {
+      console.warn(`[DEBUG] Elemento no encontrado para impacto: ${animId}`);
+      return;
+    }
+
+   const currentX = endX;
+    const currentY = endY;  
+    
+    let impactKeyframeName = `impact-heart-${animId.replace(/[^a-zA-Z0-9-_]/g, '')}`;
+    let impactKeyframes = '';
+    
+    if (objectType === 'paper') {
+      impactKeyframeName = `impact-bomb-${animId.replace(/[^a-zA-Z0-9-_]/g, '')}`;
+      impactKeyframes = `
+        @keyframes ${impactKeyframeName} {
+          0% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(1) rotate(0deg);
+            opacity: 1;
+            filter: brightness(1) saturate(1);
+          }
+          10% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(1.3) rotate(45deg);
+            filter: brightness(1.4) saturate(1.2);
+          }
+          25% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(1.6) rotate(90deg);
+            opacity: 1;
+            filter: brightness(1.8) saturate(1.4);
+          }
+          50% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(2) rotate(180deg);
+            opacity: 0.8;
+            filter: brightness(2) saturate(1.6) drop-shadow(0 0 20px rgba(255, 100, 0, 0.8));
+          }
+          75% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(1.2) rotate(270deg);
+            opacity: 0.4;
+            filter: brightness(1.2) saturate(0.8) drop-shadow(0 0 10px rgba(255, 100, 0, 0.4));
+          }
+          100% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(0.05) rotate(360deg);
+            opacity: 0;
+            filter: brightness(0) saturate(0) drop-shadow(0 0 0px rgba(255, 100, 0, 0));
+          }
+        }
+      `;
+    } else if (objectType === 'star') {
+      impactKeyframeName = `impact-star-${animId.replace(/[^a-zA-Z0-9-_]/g, '')}`;
+      impactKeyframes = `
+        @keyframes ${impactKeyframeName} {
+          0% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(1) rotate(0deg);
+            opacity: 1;
+            filter: drop-shadow(0 0 0px rgba(255, 215, 0, 0)) brightness(1);
+          }
+          10% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(1.4) rotate(45deg);
+            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 1)) brightness(1.5);
+          }
+          30% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(1.8) rotate(90deg);
+            filter: drop-shadow(0 0 40px rgba(255, 215, 0, 1)) brightness(1.8);
+          }
+          50% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(1.5) rotate(180deg);
+            filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.8)) brightness(1.4);
+          }
+          75% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(0.8) rotate(270deg);
+            opacity: 0.6;
+            filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.4)) brightness(0.8);
+          }
+          100% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(0) rotate(360deg);
+            opacity: 0;
+            filter: drop-shadow(0 0 0px rgba(255, 215, 0, 0)) brightness(0);
+          }
+        }
+      `;
+    } else {
+      // Corazón
+      impactKeyframes = `
+        @keyframes ${impactKeyframeName} {
+          0% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(1) rotate(0deg);
+            opacity: 1;
+            filter: brightness(1) drop-shadow(0 0 2px rgba(255, 107, 157, 0.3));
+          }
+          10% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(1.9) rotate(0deg);
+            filter: brightness(1.15) drop-shadow(0 0 12px rgba(255, 107, 157, 0.6));
+          }
+          17% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(0.75) rotate(0deg);
+            filter: brightness(0.9) drop-shadow(0 0 2px rgba(255, 107, 157, 0.1));
+          }
+          30% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(2) rotate(0deg);
+            filter: brightness(1.15) drop-shadow(0 0 12px rgba(255, 107, 157, 0.6));
+          }
+          37% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(0.7) rotate(0deg);
+            filter: brightness(0.9) drop-shadow(0 0 2px rgba(255, 107, 157, 0.1));
+          }
+          50% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(1.95) rotate(0deg);
+            filter: brightness(1.15) drop-shadow(0 0 12px rgba(255, 107, 157, 0.6));
+          }
+          57% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(0.72) rotate(0deg);
+            filter: brightness(0.9) drop-shadow(0 0 2px rgba(255, 107, 157, 0.1));
+          }
+          75% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(0.6) rotate(0deg);
+            opacity: 0.6;
+            filter: brightness(0.95) drop-shadow(0 0 2px rgba(255, 107, 157, 0.15));
+          }
+          100% {
+            left: ${currentX}px;
+            top: ${currentY}px;
+            transform: scale(0) rotate(0deg);
+            opacity: 0;
+            filter: brightness(0) drop-shadow(0 0 0px rgba(255, 107, 157, 0));
+          }
+        }
+      `;
+    }
+
+    console.log(`[DEBUG] Aplicando animación de impacto: ${impactKeyframeName} en posición final almacenada: x=${currentX}, y=${currentY}`);
+    
+    animElement.style.left = `${currentX}px`;
+    animElement.style.top = `${currentY}px`;
+    
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = impactKeyframes;
+    document.head.appendChild(styleSheet);
+    
+    // Aplicar la animación de impacto 
+    const duration = objectType === 'heart' ? '2.5s' : '1s';
+    animElement.style.animation = `${impactKeyframeName} ${duration} ease-out forwards`;
+  }
+
+  // 🎮 Crear animación personalizada dinámicamente
+  private createCustomThrowAnimation(animId: string, toPositionId: string, direction: string): void {
+    // Intentar encontrar el elemento con reintentos
+    const tryAttachAnimation = (attempt = 0) => {
+      const animElement = document.querySelector(`[data-anim-id="${animId}"]`) as HTMLElement;
+      
+      if (!animElement) {
+        if (attempt < 10) {
+          // Reintentar en 10ms
+          setTimeout(() => tryAttachAnimation(attempt + 1), 10);
+        } else {
+          console.warn(`[DEBUG] Elemento de animación no encontrado para ${animId}`);
+        }
+        return;
+      }
+
+      console.log(`[DEBUG] Creando animación para ${animId} hacia posición ${toPositionId}`);
+
+      const targetPos = this.getTargetPosition(toPositionId);
+      console.log(`[DEBUG] Posición objetivo: x=${targetPos.x}, y=${targetPos.y}`);
+      
+      const isFromLeft = direction === 'left';
+      
+      // Crear keyframes dinámicos
+      const keyframeName = `throw-anim-${animId.replace(/[^a-zA-Z0-9-_]/g, '')}`;
+      const startX = isFromLeft ? -100 : window.innerWidth + 100;
+      const endX = targetPos.x;
+      const endY = targetPos.y;
+      const startY = window.innerHeight * 0.85; // 85% de la altura (mucho más abajo)
+
+      const distX = endX - startX;
+      const distY = endY - startY;
+      
+      // 🎯 Usar una parábola suave: altura máxima en el medio del recorrido
+      // Calcular puntos cada 5% para una curva más suave sin saltos
+      const maxHeight = Math.abs(distY) > 100 ? 350 : 250; // Altura máxima de la parábola
+      
+      const points: { [key: string]: { x: number; y: number; rot: number } } = {};
+      
+      // Generar puntos cada 5%
+      for (let i = 0; i <= 100; i += 5) {
+        const t = i / 100; // 0 a 1
+        
+        // Parábola suave: altura máxima en el medio (t=0.5)
+        const parabolaHeight = -maxHeight * Math.sin(t * Math.PI); // Usa sen() para una parábola suave
+        
+        // Rotación suave: 0° al inicio, máximo a los 80%, 90° al final
+        const rot = (isFromLeft ? -1 : 1) * (90 * t);
+        
+        points[`p${i}`] = {
+          x: startX + distX * t,
+          y: startY + distY * t + parabolaHeight,
+          rot: rot
+        };
+      }
+
+      console.log(`[DEBUG] Keyframe: ${keyframeName}, startX=${startX}, startY=${startY}, endX=${endX}, endY=${endY}, distX=${distX}, distY=${distY}, maxHeight=${maxHeight}, isFromLeft=${isFromLeft}`);
+
+      // Construir los keyframes dinámicamente
+      let keyframesContent = `@keyframes ${keyframeName} {`;
+      keyframesContent += `
+        0% {
+          left: ${startX}px;
+          top: ${startY}px;
+          opacity: 0;
+          transform: scale(0.3) rotate(0deg);
+        }`;
+      
+      // Agregar cada punto del 5% al 95%
+      for (let i = 5; i <= 95; i += 5) {
+        const p = points[`p${i}`];
+        const t = i / 100;
+        const opacity = t < 0.05 ? 0.2 + t * 16 : (t > 0.95 ? 1 - (t - 0.95) * 20 : 1); // Desvanecimiento suave
+        const scale = Math.min(1, 0.3 + t * 1.4); // Escala gradual
+        
+        keyframesContent += `
+        ${i}% {
+          left: ${p.x}px;
+          top: ${p.y}px;
+          opacity: ${opacity};
+          transform: scale(${scale}) rotate(${p.rot}deg);
+        }`;
+      }
+      
+      keyframesContent += `
+        100% {
+          left: ${endX}px;
+          top: ${endY}px;
+          opacity: 1;
+          transform: scale(1) rotate(${isFromLeft ? -90 : 90}deg);
+        }
+      }`;
+
+      const keyframes = keyframesContent;
+
+      // Inyectar estilos en el documento
+      const styleSheet = document.createElement('style');
+      styleSheet.textContent = keyframes;
+      document.head.appendChild(styleSheet);
+
+     const animObj = this.activeAnimations.find(a => a.id === animId);
+      if (animObj) {
+        animObj.endX = endX;
+        animObj.endY = endY;
+        console.log(`[DEBUG] Posiciones finales almacenadas para ${animId}: endX=${endX}, endY=${endY}`);
+      }
+
+      // Aplicar la animación al elemento - 1.5 segundos para una animación más lenta y suave
+      animElement.style.animation = `${keyframeName} 1.5s ease-in-out forwards`;
+      
+      const animationDuration = 1500; // 1.5 segundos para que coincida con la duración de la animación 
+      setTimeout(() => {
+        animElement.style.left = `${endX}px`;
+        animElement.style.top = `${endY}px`;
+        console.log(`[DEBUG] Posición final establecida para ${animId}: left=${endX}px, top=${endY}px`);
+      }, animationDuration);
+      
+      console.log(`[DEBUG] Animación aplicada: ${keyframeName}`);
+    };
+
+    tryAttachAnimation();
+  }
+
   // 🎮 Normalizar el rol para mostrarlo en el template
   // Los admins se muestran como 'player' en el template pero con privilegios especiales
   private getRoleForDisplay(role: string | undefined): string {
@@ -616,17 +1067,36 @@ export class TableGameComponent implements OnInit, OnDestroy {
       const currentUserId = sessionStorage.getItem('currentUserId');
       // No mostrar tooltip si es el mismo jugador (admin actual)
       if (player?.userId && player.userId !== currentUserId) {
+        // Cancelar timeout anterior si existe
+        if (this.adminTransferHideTimers[position]) {
+          clearTimeout(this.adminTransferHideTimers[position]);
+          this.adminTransferHideTimers[position] = null;
+        }
         this.adminTransferOptions = {};
         this.adminTransferOptions[position] = true;
-
-        setTimeout(() => {
-          this.showAdminTransferOption = false;
-        }, 5000);
+        this.changeDetectorRef.detectChanges();
       }
     }
   }
   hideAdminTransferTooltip(position: string) {
-    this.adminTransferOptions[position] = false;
+    if (this.adminTransferHideTimers[position]) {
+      clearTimeout(this.adminTransferHideTimers[position]);
+    }
+   this.adminTransferHideTimers[position] = setTimeout(() => {
+      this.adminTransferOptions[position] = false;
+      this.changeDetectorRef.detectChanges();
+    }, 300);
+  }
+
+  showAdminTransferTooltipAgain(position: string) {
+    if (this.adminTransferHideTimers[position]) {
+      clearTimeout(this.adminTransferHideTimers[position]);
+      this.adminTransferHideTimers[position] = null;
+    }
+    if (this.isAdmin()) {
+      this.adminTransferOptions[position] = true;
+      this.changeDetectorRef.detectChanges();
+    }
   }
 
   passAdmin(position: string):void{
