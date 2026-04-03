@@ -325,17 +325,18 @@ export class GamePageComponent implements OnInit, OnDestroy {
     if (currentUser && currentUser.rol) {
       this.currentUserRole = currentUser.rol.toLowerCase();
     } else {
-      // Fallback: obtener del sessionStorage si existe
+      // Fallback: obtener del sessionStorage
       const storedPlayer = sessionStorage.getItem('currentPlayer');
       if (storedPlayer) {
         try {
           const player = JSON.parse(storedPlayer);
-          this.currentUserRole = player.rol?.toLowerCase() || 'void';
+          this.currentUserRole = player.rol?.toLowerCase() || 'player'; // Por defecto 'player' si no hay rol
         } catch (e) {
-          this.currentUserRole = 'void';
+          this.currentUserRole = 'player'; // Por defecto 'player' si hay error
         }
       } else {
-        this.currentUserRole = 'void';
+        // Si es admin, probablemente sea 'player' (pueden cambiar a viewer)
+        this.currentUserRole = this.isAdmin ? 'player' : 'void';
       }
     }
   }
