@@ -60,7 +60,7 @@ export class TableGameComponent implements OnInit, OnDestroy {
       this.gameCommunicationService.throwObject(this.gameId, fromPlayerId, toPlayer.userId, objectType);
     }
 
-  @Input() currentUserVote: { vote: number | null, id: string | null }= { vote: null, id: null };
+  @Input() currentUserVote: { vote: number | string | null, id: string | null }= { vote: null, id: null };
   private readonly TABLE_STATE_KEY = 'game_table_state';
   private gameId: string | null = null;
   readonly subscriptions: Subscription = new Subscription();
@@ -71,26 +71,38 @@ export class TableGameComponent implements OnInit, OnDestroy {
   private adminTransferHideTimers: { [position: string]: any } = {};
   adminPlayerId: string | null = null;
 
-  players: {
+  private readonly basePositions: Array<{
     id: string;
     name: string;
     assigned: boolean;
     rol?: string;
     order: number;
-    userId?:string
+    userId?: string;
     overlay?: string | null;
-    vote?: number | null;
-    isAdmin?: boolean; 
-  }[] = [
+    vote?: number | string | null;
+    isAdmin?: boolean;
+  }> = [
     { id: 'center', name: '', assigned: false, rol: '', order: 1 },
-    { id: 'bottom-center', name: '', assigned: false, rol: '', order: 2 },
-    { id: 'left-side', name: '', assigned: false, rol: '', order: 3 },
-    { id: 'right-side', name: '', assigned: false, rol: '', order: 4 },
-    { id: 'side-top-left', name: '', assigned: false, rol: '', order: 5 },
-    { id: 'side-top-right', name: '', assigned: false, rol: '', order: 6 },
-    { id: 'bottom-left-1', name: '', assigned: false, rol: '', order: 7 },
-    { id: 'bottom-right-1', name: '', assigned: false, rol: '', order: 8 }
+    { id: 'left-side', name: '', assigned: false, rol: '', order: 2 },
+    { id: 'right-side', name: '', assigned: false, rol: '', order: 3 },
+    { id: 'bottom-left-1', name: '', assigned: false, rol: '', order: 4 },
+    { id: 'bottom-right-1', name: '', assigned: false, rol: '', order: 5 },
+    { id: 'bottom-center', name: '', assigned: false, rol: '', order: 6 },
+    { id: 'side-top-left', name: '', assigned: false, rol: '', order: 7 },
+    { id: 'side-top-right', name: '', assigned: false, rol: '', order: 8 }
   ];
+
+  players: Array<{
+    id: string;
+    name: string;
+    assigned: boolean;
+    rol?: string;
+    order: number;
+    userId?: string;
+    overlay?: string | null;
+    vote?: number | string | null;
+    isAdmin?: boolean;
+  }> = this.basePositions.map(position => ({ ...position }));
 
   constructor(
     readonly gameCommunicationService: GameCommunicationService,
@@ -196,46 +208,17 @@ export class TableGameComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.gameCommunicationService.gamePlayers$.subscribe((players) => {
         if (players && players.length > 0) {
-         
-          // 🔴 PRIMERO: Limpiar jugadores que ya no están en la lista
-          const activePlayerIds = new Set(players.map(p => p.id));
-          this.players.forEach(position => {
-            if (position.userId && !activePlayerIds.has(position.userId)) {
-              position.name = '';
-              position.assigned = false;
-              position.userId = undefined;
-              position.rol = '';
-              position.vote = null;
-              position.overlay = null;
-              position.isAdmin = false;
-            }
-          });
-          
-          // 🎮 Obtener el usuario actual
-          const currentPlayer = this.gameCommunicationService.playerSubject.value;
-          
-          // Separar: usuario actual y otros
-          const currentPlayerData = currentPlayer ? players.find(p => p.id === currentPlayer.id) : null;
-          const otherPlayers = players.filter(p => !currentPlayer || p.id !== currentPlayer.id);
-          
-          // 1️⃣ Primero asignar al usuario actual al centro
-          if (currentPlayerData && !this.players.some(p => p.userId === currentPlayerData.id)) {
-            this.assignPlayerToCenter(currentPlayerData);
-          }
-          
-          // 2️⃣ Luego asignar a los otros jugadores
-          otherPlayers.forEach(apiPlayer => {
-            const isAssigned = this.players.some(p => p.userId === apiPlayer.id);
-            if (!isAssigned) {
-              this.assignNewPlayer(apiPlayer);
-            }
-          });
-          
+          this.rebuildPositionsFromPlayers(players);
           this.changeDetectorRef.detectChanges();
 
           // 🔑 CRÍTICO: Después de asignar todos los jugadores, actualizar el estado de admin
           // Esto es necesario porque el admin_id puede ya estar en cache desde antes
           this.updatePlayersAdminStatus();
+        } else {
+          this.players = this.basePositions.map(position => ({ ...position }));
+          this.adminPlayerId = null;
+          this.saveTableState();
+          this.changeDetectorRef.detectChanges();
         }
       })
     );
@@ -245,37 +228,10 @@ export class TableGameComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.gameCommunicationService.playerSubject.subscribe((currentPlayer) => {
         if (currentPlayer) {
-          // El usuario actual se ha sincronizado, re-procesar los jugadores
           const currentPlayers = this.gameCommunicationService.gamePlayersSubject.value;
           if (currentPlayers && currentPlayers.length > 0) {
-            // Buscar el usuario actual en la lista
-            const currentPlayerData = currentPlayers.find(p => p.id === currentPlayer.id);
-            const otherPlayers = currentPlayers.filter(p => p.id !== currentPlayer.id);
-            
-            if (currentPlayerData) {
-              // 🔑 CRÍTICO: El usuario debe estar en el CENTRO, no en cualquier otra posición
-              // Primero, verificar si ya está en el centro
-              const centerPlayer = this.players.find(p => p.id === 'center');
-              const isInCenter = centerPlayer?.userId === currentPlayerData.id;
-              
-              if (isInCenter) {
-              } else {
-                // El usuario está en otra posición o sin asignar. Moverlo al centro
-                // Desasignar de cualquier otra posición
-                this.players.forEach(p => {
-                  if (p.userId === currentPlayerData.id && p.id !== 'center') {
-                    p.name = '';
-                    p.assigned = false;
-                    p.userId = undefined;
-                    p.rol = '';
-                  }
-                });
-                
-                // Asignar al centro
-                this.assignPlayerToCenter(currentPlayerData);
-                this.changeDetectorRef.detectChanges();
-              }
-            }
+            this.rebuildPositionsFromPlayers(currentPlayers);
+            this.changeDetectorRef.detectChanges();
           }
         }
       })
@@ -354,18 +310,110 @@ export class TableGameComponent implements OnInit, OnDestroy {
     }
   }
 
-  private initializeGameState(): void {
-    this.loadTableState();
-    const storedPlayers = this.gameCommunicationService.getStoredPlayers(this.gameId!);
-    // 🎮 No resetear si hay jugadores almacenados
-    if (storedPlayers.length === 0) {
-      this.resetPlayers();
-    }
-    storedPlayers.forEach(player => {
-      if (!this.isPlayerAssigned(player)) {
-        this.assignPlayer(player);
+  private rebuildPositionsFromPlayers(players: any[]): void {
+    console.log('[TABLE] rebuildPositionsFromPlayers input:', players?.map(p => ({ id: p.id, name: p.name, role: p.role || p.rol })));
+    const previousByUserId = new Map<string, { overlay?: string | null; vote?: number | string | null }>();
+    this.players.forEach(position => {
+      if (position.userId) {
+        previousByUserId.set(position.userId, {
+          overlay: position.overlay ?? null,
+          vote: position.vote ?? null
+        });
       }
     });
+
+    this.players = this.basePositions.map(position => ({ ...position }));
+    this.adminPlayerId = null;
+
+    const currentPlayer = this.gameCommunicationService.playerSubject.value;
+    const currentUserId = currentPlayer?.id || sessionStorage.getItem('currentUserId');
+
+    if (!currentUserId) {
+      console.warn('[TABLE] currentUserId not available yet, skipping seat assignment');
+      return;
+    }
+
+    const currentPlayerData = currentUserId
+      ? players.find(p => p.id === currentUserId)
+      : null;
+
+    const assignedUserIds = new Set<string>();
+
+    const applyPlayerToPosition = (position: any, apiPlayer: any) => {
+      if (!apiPlayer?.id || assignedUserIds.has(apiPlayer.id)) {
+        return;
+      }
+      position.name = apiPlayer.name;
+      position.assigned = true;
+      const role = apiPlayer.role || apiPlayer.rol || 'player';
+      position.rol = this.getRoleForDisplay(role);
+      position.userId = apiPlayer.id;
+      position.isAdmin = this.isPlayerAdmin(apiPlayer.id);
+
+      const previous = previousByUserId.get(apiPlayer.id);
+      if (previous) {
+        position.overlay = previous.overlay ?? null;
+        position.vote = previous.vote ?? null;
+      }
+
+      if (position.isAdmin) {
+        this.adminPlayerId = apiPlayer.id;
+      }
+
+      assignedUserIds.add(apiPlayer.id);
+    };
+
+    if (currentPlayerData) {
+      const centerPosition = this.players.find(p => p.id === 'center');
+      if (centerPosition) {
+        applyPlayerToPosition(centerPosition, currentPlayerData);
+        console.log('[TABLE] assigned current user to center:', { id: currentPlayerData.id, name: currentPlayerData.name });
+      }
+    }
+
+    const otherPlayers = players.filter(p => !currentUserId || p.id !== currentUserId);
+    otherPlayers.sort((a, b) => {
+      const aTime = a.created_at || a.createdAt || a.inserted_at || '';
+      const bTime = b.created_at || b.createdAt || b.inserted_at || '';
+      if (aTime && bTime && aTime !== bTime) {
+        return aTime < bTime ? -1 : 1;
+      }
+      return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+
+    const availablePositions = this.players
+      .filter(p => !p.assigned && p.id !== 'center')
+      .sort((a, b) => a.order - b.order);
+
+    otherPlayers.forEach(apiPlayer => {
+      const target = availablePositions.shift();
+      if (!target) {
+        return;
+      }
+      applyPlayerToPosition(target, apiPlayer);
+      console.log('[TABLE] assigned player:', { id: apiPlayer.id, name: apiPlayer.name, position: target.id });
+    });
+
+    this.saveTableState();
+    console.log('[TABLE] final positions:', this.players.map(p => ({ position: p.id, userId: p.userId, name: p.name })));
+  }
+
+  private initializeGameState(): void {
+    const currentPlayers = this.gameCommunicationService.gamePlayersSubject.value;
+    if (currentPlayers && currentPlayers.length > 0) {
+      console.log('[TABLE] initializeGameState: using server players');
+      this.rebuildPositionsFromPlayers(currentPlayers);
+      return;
+    }
+
+    const storedPlayers = this.gameCommunicationService.getStoredPlayers(this.gameId!);
+    if (storedPlayers.length > 0) {
+      console.log('[TABLE] initializeGameState: using stored players');
+      this.rebuildPositionsFromPlayers(storedPlayers);
+      return;
+    }
+
+    this.resetPlayers();
   }
 
   private setupPlayerColorChangeSubscription(): void {
@@ -505,7 +553,16 @@ export class TableGameComponent implements OnInit, OnDestroy {
   private setupPlayerSubscription(): void {
     this.subscriptions.add(
       this.gameCommunicationService.player$.subscribe(player => {
-        if (player && !this.isPlayerAssigned(player)) {
+        if (!player) {
+          return;
+        }
+        const currentPlayers = this.gameCommunicationService.gamePlayersSubject.value;
+        if (currentPlayers && currentPlayers.length > 0) {
+          this.rebuildPositionsFromPlayers(currentPlayers);
+          this.changeDetectorRef.detectChanges();
+          return;
+        }
+        if (!this.isPlayerAssigned(player)) {
           this.assignPlayer(player);
           this.notifyPlayersUpdate();
         }
@@ -528,7 +585,7 @@ export class TableGameComponent implements OnInit, OnDestroy {
     });
   }
 
-  getPlayerCardOverlay(playerId: string):{ overlay: string | null, vote: number | null } {
+  getPlayerCardOverlay(playerId: string):{ overlay: string | null, vote: number | string | null } {
     const player = this.getPlayerByID(playerId);
 
     if (!player) {
@@ -557,6 +614,11 @@ export class TableGameComponent implements OnInit, OnDestroy {
   private loadTableState(): void {
     if (!this.gameId) return;
 
+    const currentPlayers = this.gameCommunicationService.gamePlayersSubject.value;
+    if (currentPlayers && currentPlayers.length > 0) {
+      return;
+    }
+
     const savedState = sessionStorage.getItem(`${this.TABLE_STATE_KEY}_${this.gameId}`);
     if (savedState) {
       const newPlayers = JSON.parse(savedState);
@@ -574,10 +636,7 @@ export class TableGameComponent implements OnInit, OnDestroy {
   }
 
   private isPlayerAssigned(user: User): boolean {
-    return this.players.some(player =>
-      player.name === user.name &&
-      player.assigned
-    );
+    return this.players.some(player => player.userId === user.id);
   }
 
   private resetPlayerVotes(): void {
@@ -1075,6 +1134,11 @@ export class TableGameComponent implements OnInit, OnDestroy {
         this.adminTransferOptions = {};
         this.adminTransferOptions[position] = true;
         this.changeDetectorRef.detectChanges();
+        // Ocultar tras 3 segundos si el puntero no está sobre el tooltip
+        this.adminTransferHideTimers[position] = setTimeout(() => {
+          this.adminTransferOptions[position] = false;
+          this.changeDetectorRef.detectChanges();
+        }, 2000);
       }
     }
   }
@@ -1082,7 +1146,7 @@ export class TableGameComponent implements OnInit, OnDestroy {
     if (this.adminTransferHideTimers[position]) {
       clearTimeout(this.adminTransferHideTimers[position]);
     }
-   this.adminTransferHideTimers[position] = setTimeout(() => {
+    this.adminTransferHideTimers[position] = setTimeout(() => {
       this.adminTransferOptions[position] = false;
       this.changeDetectorRef.detectChanges();
     }, 300);
@@ -1096,6 +1160,7 @@ export class TableGameComponent implements OnInit, OnDestroy {
     if (this.isAdmin()) {
       this.adminTransferOptions[position] = true;
       this.changeDetectorRef.detectChanges();
+      // Mantener visible mientras el mouse esté sobre el tooltip
     }
   }
 

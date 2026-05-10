@@ -8,7 +8,7 @@ import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 export class CardComponent implements OnInit {
   @Input() title: string = '';
   @Input() overlay: string | null = null;
-  @Input() voted: number | null = null;
+  @Input() voted: number | string | null = null;
   @Input() userRole: boolean=false;
   @Input() adminTransferOptions: boolean = false;
   @Input() isAdmin: boolean = false;

@@ -24,13 +24,13 @@ export class GameCommunicationService {
   readonly playerColorChangeSubject = new Subject<{ playerId: string, color: string }>();
   playerColorChange$ = this.playerColorChangeSubject.asObservable();
   
-  readonly playerVoteChangeSubject = new Subject<{ playerId: string, vote: number }>();
+  readonly playerVoteChangeSubject = new Subject<{ playerId: string, vote: number | string }>();
   playerVoteChange$ = this.playerVoteChangeSubject.asObservable();
   
   readonly gameStateSubject = new BehaviorSubject<'waiting' | 'voted' | 'completed'>('waiting');
   gameState$ = this.gameStateSubject.asObservable();
   
-  readonly gameVotesSubject = new BehaviorSubject<{ [userId: string]: number | null}>({});
+  readonly gameVotesSubject = new BehaviorSubject<{ [userId: string]: number | string | null}>({});
   gameVotes$ = this.gameVotesSubject.asObservable();
   
   readonly clearOverlaysSubject = new Subject<void>();
@@ -210,7 +210,7 @@ export class GameCommunicationService {
     this.socketService.disconnect();
   }
 
-  updateUserVote(playerId: string, gameId: string, vote: number): void {
+  updateUserVote(playerId: string, gameId: string, vote: number | string): void {
     const player = this.playerSubject.value;
     if (player && player.id === playerId) {
       const updatedPlayer = { ...player, voted: vote };
@@ -219,7 +219,7 @@ export class GameCommunicationService {
     }
   }
 
-  notifyPlayerColorChange(playerId: string, color: string, vote: number) {
+  notifyPlayerColorChange(playerId: string, color: string, vote: number | string) {
     this.playerColorChangeSubject.next({ playerId, color });
     this.playerVoteChangeSubject.next({ playerId, vote });
   }
@@ -228,19 +228,19 @@ export class GameCommunicationService {
     this.clearOverlaysSubject.next();
   }
 
-  updateGameVotes(gameId: string, votes: { [userId: string]: number }) {
+  updateGameVotes(gameId: string, votes: { [userId: string]: number | string }) {
     this.gameVotesSubject.next(votes);
   }
 
   updateGameCompletedStatus(gameId: string | null, isComplete: boolean) {
    }
 
-  getLatestGameVotes(gameId: string | null): { [userId: string]: number } {
+  getLatestGameVotes(gameId: string | null): { [userId: string]: number | string } {
     const votes = this.gameVotesSubject.value || {};
-    const result: { [userId: string]: number } = {};
+    const result: { [userId: string]: number | string } = {};
     Object.keys(votes).forEach(key => {
       if (votes[key] !== null && votes[key] !== undefined) {
-        result[key] = votes[key] as number;
+        result[key] = votes[key] as number | string;
       }
     });
     return result;

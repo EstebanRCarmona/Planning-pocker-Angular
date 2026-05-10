@@ -49,14 +49,22 @@ export class SocketIOService {
             this.disconnectTimeouts.delete(playerId);
           }
           
-          socket.join(gameId);
-          
           // Obtener los jugadores actuales ANTES de agregar el nuevo
           const existingPlayers = await supabaseService.getGamePlayers(gameId);
+          const isAlreadyInGame = existingPlayers.some(p => p.id === playerId);
+          const maxPlayers = 8;
+
+          if (!isAlreadyInGame && existingPlayers.length >= maxPlayers) {
+            socket.emit('error', { message: 'Game is full', code: 'GAME_FULL', action: 'join-game' });
+            return;
+          }
+
+          socket.join(gameId);
+
           const isFirstPlayer = existingPlayers.length === 0;
           
-          // Si es el primer jugador, debe ser admin
-          const finalRole = isFirstPlayer ? 'admin' : playerRole;
+          // Si es el primer jugador, debe ser admin pero mantener el rol elegido (player/viewer)
+          const finalRole = playerRole || 'player';
           
           // Add or get player from Supabase database using the client's playerId
           const addedPlayer = await supabaseService.addOrGetPlayer(gameId, playerName, finalRole, isFirstPlayer, playerId);
@@ -83,7 +91,7 @@ export class SocketIOService {
           room.players.set(playerId, {
             id: playerId,
             name: playerName,
-            role: playerRole,
+            role: finalRole,
             socketId: socket.id,
           });
 
@@ -215,6 +223,57 @@ export class SocketIOService {
          } catch (error) {
           console.error(`❌ Error changing admin:`, error);
           socket.emit('error', { message: 'Failed to change admin', error });
+        }
+      });
+
+      // Leave game (explicit)
+      socket.on('leave-game', async (data: any) => {
+        try {
+          const { gameId, playerId } = data || {};
+          if (!gameId || !playerId) {
+            return;
+          }
+
+          if (this.disconnectTimeouts.has(playerId)) {
+            clearTimeout(this.disconnectTimeouts.get(playerId));
+            this.disconnectTimeouts.delete(playerId);
+          }
+
+          const room = this.gameRooms.get(gameId);
+          if (room?.players.has(playerId)) {
+            room.players.delete(playerId);
+          }
+
+          const playerData = await supabaseService.getGamePlayers(gameId).then(
+            players => players.find(p => p.id === playerId)
+          );
+          const isAdmin = playerData?.admin || false;
+
+          if (isAdmin) {
+            await supabaseService.deleteGame(gameId);
+
+            this.io.to(gameId).emit('game-deleted', {
+              gameId,
+              reason: 'Admin left the game'
+            });
+          } else {
+            await supabaseService.removePlayer(playerId);
+
+            const updatedPlayers = await supabaseService.getGamePlayers(gameId);
+            const game = await supabaseService.getGame(gameId);
+            const votes = await supabaseService.getGameVotes(gameId);
+
+            this.io.to(gameId).emit('player-removed', {
+              playerId,
+              players: updatedPlayers,
+              game,
+              votes,
+              gameId
+            });
+          }
+        } catch (error) {
+          console.error('❌ Error in leave-game:', error);
+          socket.emit('error', { message: 'Failed to leave game', error: String(error) });
         }
       });
 

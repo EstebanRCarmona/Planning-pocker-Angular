@@ -41,7 +41,7 @@
   </section>
 
   <footer class="cards-row">
-    <ng-container *ngFor="let position of ['bottom-left-1', 'bottom-center', 'bottom-right-1']">
+    <ng-container *ngFor="let position of ['bottom-center', 'bottom-left-1', 'bottom-right-1']">
       <ng-container *ngTemplateOutlet="playerDisplayTemplate; context: {
         position: position,
         player: getPlayerByID(position),
@@ -52,8 +52,9 @@
 
   <ng-template #playerDisplayTemplate let-position="position" let-player="player" let-adminOptions="adminOptions"
                let-containerClass="containerClass" let-cardClass="cardClass">
-    <ng-container *ngIf="player?.rol === 'player'">
+    <ng-container *ngIf="player?.rol === 'player'; else viewerOrEmpty">
       <div class="player-wrapper" 
+           [ngClass]="containerClass || ''"
            [attr.data-player-position]="position"
            (mouseenter)="showAdminTransferTooltip(position); showThrowTooltipFor(position)" 
            (mouseleave)="hideAdminTransferTooltip(position); hideThrowTooltip(position)">
@@ -84,39 +85,45 @@
       </div>
     </ng-container>
 
-    <ng-container *ngIf="player?.rol === 'viewer'">
-      <section [ngClass]="containerClass || 'circle-container'" [attr.data-player-position]="position">
-        <div
-          class="circle"
-          [ngClass]="{
-            'interactive': isAdmin(),
-            'cursor-pointer': isAdmin(),
-            'hover:bg-gray-200': isAdmin()
-          }"
-          (mouseenter)="isAdmin() && showAdminTransferTooltip(position); showThrowTooltipFor(position)"
-          (mouseleave)="isAdmin() && hideAdminTransferTooltip(position); hideThrowTooltip(position)"
-          (click)="isAdmin() && passAdmin(position)"
-          (keydown)="$event.preventDefault()"
-        >
-          <span class="circle-text">
-            {{ player?.name?.slice(0, 2) }}
-          </span>
-          <div *ngIf="adminOptions" 
-               class="admin-transfer-tooltip"
-               (mouseenter)="showAdminTransferTooltipAgain(position)"
-               (mouseleave)="hideAdminTransferTooltip(position)">
-            🔑 Pasar permisos de admin
+    <ng-template #viewerOrEmpty>
+      <ng-container *ngIf="player?.rol === 'viewer'; else emptySlot">
+        <section [ngClass]="containerClass || 'circle-container'" [attr.data-player-position]="position">
+          <div
+            class="circle"
+            [ngClass]="{
+              'interactive': isAdmin(),
+              'cursor-pointer': isAdmin(),
+              'hover:bg-gray-200': isAdmin()
+            }"
+            (mouseenter)="isAdmin() && showAdminTransferTooltip(position); showThrowTooltipFor(position)"
+            (mouseleave)="isAdmin() && hideAdminTransferTooltip(position); hideThrowTooltip(position)"
+            (click)="isAdmin() && passAdmin(position)"
+            (keydown)="$event.preventDefault()"
+          >
+            <span class="circle-text">
+              {{ player?.name?.slice(0, 2) }}
+            </span>
+            <div *ngIf="adminOptions" 
+                 class="admin-transfer-tooltip"
+                 (mouseenter)="showAdminTransferTooltipAgain(position)"
+                 (mouseleave)="hideAdminTransferTooltip(position)">
+              🔑 Pasar permisos de admin
+            </div>
+            <!-- Tooltip de lanzar objeto para viewers -->
+            <div *ngIf="showThrowTooltip[position]" class="throw-tooltip" (mouseenter)="showThrowTooltipFor(position)" (mouseleave)="hideThrowTooltip(position)">
+              <button class="throw-btn heart" (click)="throwObjectToPlayer(position, 'heart', $event)" title="Enviar corazón">❤️</button>
+              <button class="throw-btn rock" (click)="throwObjectToPlayer(position, 'paper', $event)" title="Lanzar piedra">💣</button>
+              <button class="throw-btn star" (click)="throwObjectToPlayer(position, 'star', $event)" title="Enviar estrella">⭐</button>
+            </div>
           </div>
-          <!-- Tooltip de lanzar objeto para viewers -->
-          <div *ngIf="showThrowTooltip[position]" class="throw-tooltip" (mouseenter)="showThrowTooltipFor(position)" (mouseleave)="hideThrowTooltip(position)">
-            <button class="throw-btn heart" (click)="throwObjectToPlayer(position, 'heart', $event)" title="Enviar corazón">❤️</button>
-            <button class="throw-btn rock" (click)="throwObjectToPlayer(position, 'paper', $event)" title="Lanzar piedra">💣</button>
-            <button class="throw-btn star" (click)="throwObjectToPlayer(position, 'star', $event)" title="Enviar estrella">⭐</button>
+          <div class="circle-name">
+            <span *ngIf="player?.isAdmin" class="admin-badge">🔑</span>
+            {{ player?.name }}
           </div>
-        </div>
-        <div class="circle-name">
-          <span *ngIf="player?.isAdmin" class="admin-badge">🔑</span>
-          {{ player?.name }}
-        </div>
-      </section>
-    </ng-container>
+        </section>
+      </ng-container>
+    </ng-template>
+
+    <ng-template #emptySlot>
+        <div class="seat-placeholder" [ngClass]="containerClass || ''" [attr.data-player-position]="position"></div>
+    </ng-template>

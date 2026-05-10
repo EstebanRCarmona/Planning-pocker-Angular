@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { Game } from 'src/app/shared/interfaces/game.model';
 import { Injectable } from "@angular/core";
 import { CreateGameRequest } from 'src/app/shared/interfaces/game.model';
@@ -36,11 +36,43 @@ export class GameService {
       this.socketService.connect();
     }
 
-    this.socketService.joinGame(gameId, user.id, user.name, user.rol || RolUsuario.PLAYER);
-    return this.socketService.playerJoined$;
+    return new Observable(observer => {
+      let joinedSub: Subscription;
+      let errorSub: Subscription;
+
+      joinedSub = this.socketService.playerJoined$.subscribe(data => {
+        observer.next(data);
+        observer.complete();
+        joinedSub.unsubscribe();
+        if (errorSub) {
+          errorSub.unsubscribe();
+        }
+      });
+
+      errorSub = this.socketService.error$.subscribe(err => {
+        if (err?.code === 'GAME_FULL' || err?.message === 'Game is full') {
+          observer.error(err);
+          joinedSub.unsubscribe();
+          if (errorSub) {
+            errorSub.unsubscribe();
+          }
+        }
+      });
+
+      this.socketService.joinGame(gameId, user.id, user.name, user.rol || RolUsuario.PLAYER);
+
+      return () => {
+        if (joinedSub) {
+          joinedSub.unsubscribe();
+        }
+        if (errorSub) {
+          errorSub.unsubscribe();
+        }
+      };
+    });
   }
 
-  vote(gameId: string, userId: string, vote: number): Observable<any> {
+  vote(gameId: string, userId: string, vote: number | string): Observable<any> {
     this.socketService.submitVote(gameId, userId, vote);
     return this.socketService.votesUpdated$;
   }
@@ -58,9 +90,12 @@ export class GameService {
     this.socketService.resetVotes(gameId);
   }
 
-  playerVote(gameId: string, userId: string, vote: number): Observable<any> {
+  playerVote(gameId: string, userId: string, vote: number | string): Observable<any> {
     this.vote(gameId, userId, vote);
     return this.socketService.votesUpdated$;
+  }
+  leaveGame(gameId: string, userId: string): void {
+    this.socketService.leaveGame(gameId, userId);
   }
 
   getCurrentUser(gameId: string, userName: string): User | undefined {

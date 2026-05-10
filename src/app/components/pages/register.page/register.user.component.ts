@@ -175,6 +175,9 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
         error: (err) => {
           if (err.message === 'Game is full') {
             this.toastService.showToast('Partida llena', 'error');
+            setTimeout(() => {
+              this.router.navigate(['/create-game']);
+            }, 1200);
           } else {
             this.toastService.showToast('Error al unirse al juego', 'error');
           }

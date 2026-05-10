@@ -8,6 +8,8 @@ import { ToastService } from 'src/app/shared/services/toast/toast.service';
 import { SERVICE_ERROR } from 'src/app/shared/Constants';
 import { faCheck, faTableColumns, faRotateRight } from '@fortawesome/free-solid-svg-icons';
 import { LoadingService } from 'src/app/shared/services/loading.service';
+import { HttpClient } from '@angular/common/http';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-game-page',
@@ -15,18 +17,19 @@ import { LoadingService } from 'src/app/shared/services/loading.service';
   styleUrls: ['./game.page.component.scss']
 })
 export class GamePageComponent implements OnInit, OnDestroy {
+  private readonly fibonacciCards: number[] = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
   gameName: string | null = null;
   userName: string | null = null;
   gameId: string | null = null;
   gameState: 'waiting' | 'voted' | 'completed' = 'waiting';
-  gameVotes: { [userId: string]: number | null } = {};
+  gameVotes: { [userId: string]: number | string | null } = {};
   isAdmin = false;
   isGameComplete:boolean=false;
-  currentUserVote: number | null = null;
+  currentUserVote: number | string | null = null;
   player$: Observable<User | null>;
   users: User[] = [];
   revealedCards: { [userId: string]: number } = {};
-  fibonacciNumbers: number[] = this.generateFibonacciUpTo89();
+  fibonacciNumbers: number[] = [...this.fibonacciCards];
   linkCopied: boolean =false;
   faCheck = faCheck;
   faRotateRight = faRotateRight;
@@ -39,6 +42,13 @@ export class GamePageComponent implements OnInit, OnDestroy {
   isInviteModalVisible: boolean = false;
   invitationLink: string = '';
   private subscriptions: Subscription = new Subscription();
+  private hasLeftGame = false;
+  private isPageUnloading = false;
+  private beforeUnloadHandler = () => {
+    this.isPageUnloading = true;
+  };
+  private healthIntervalId: number | null = null;
+  private readonly healthPingMs = 5 * 60 * 1000;
 
   constructor(
     readonly route: ActivatedRoute,
@@ -47,12 +57,14 @@ export class GamePageComponent implements OnInit, OnDestroy {
     readonly gameCommunicationService: GameCommunicationService,
     readonly changeDetectorRef:ChangeDetectorRef,
     readonly toastService: ToastService,
-    readonly loadingService: LoadingService
+    readonly loadingService: LoadingService,
+    private http: HttpClient
   ) {
     this.player$ = this.gameCommunicationService.player$;
   }
 
   ngOnInit(): void {
+    window.addEventListener('beforeunload', this.beforeUnloadHandler);
     // Verificar si necesita mostrar loading primero
     if (!this.loadingService.hasLoadingBeenShown()) {
       const gameId = this.route.snapshot.paramMap.get('gameId');
@@ -76,6 +88,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         if (this.gameId) {
           // Guardar el gameId en sessionStorage para usarlo en otros servicios
           sessionStorage.setItem('currentGameId', this.gameId);
+          this.startHealthPing();
           
           this.gameService.getGameById(this.gameId).subscribe({
             next: (response) => {
@@ -315,7 +328,44 @@ export class GamePageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+    if (!this.isPageUnloading) {
+      this.leaveGameIfPossible();
+    }
+    this.stopHealthPing();
     this.subscriptions.unsubscribe();
+  }
+
+  private leaveGameIfPossible(): void {
+    if (this.hasLeftGame) {
+      return;
+    }
+    const gameId = this.gameId || sessionStorage.getItem('currentGameId');
+    const userId = sessionStorage.getItem('currentUserId');
+
+    if (gameId && userId) {
+      this.gameService.leaveGame(gameId, userId);
+      this.hasLeftGame = true;
+    }
+  }
+
+  private startHealthPing(): void {
+    if (this.healthIntervalId !== null) {
+      return;
+    }
+    this.healthIntervalId = window.setInterval(() => {
+      this.http.get(`${environment.apiUrl}/health`).subscribe({
+        next: () => {},
+        error: () => {}
+      });
+    }, this.healthPingMs);
+  }
+
+  private stopHealthPing(): void {
+    if (this.healthIntervalId !== null) {
+      window.clearInterval(this.healthIntervalId);
+      this.healthIntervalId = null;
+    }
   }
 
   loadUserRole(): void {
@@ -386,12 +436,8 @@ export class GamePageComponent implements OnInit, OnDestroy {
     return initials.toUpperCase();
   }
 
-  vote(vote: number): void {
-    if (this.currentUserVote !== null) {
-      this.toastService.showToast('Ya votaste en esta ronda', 'success');
-      return;
-    }
-    
+  vote(vote: number | string): void {
+   
     if (!this.gameId || !this.userName) {
       this.toastService.showToast('Error: No hay gameId o userName', 'error');
       return;
@@ -440,7 +486,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
             // Filter out null values before updating
             const votesWithoutNull = Object.fromEntries(
               Object.entries(this.gameVotes).filter(([_, v]) => v !== null)
-            ) as { [userId: string]: number };
+            ) as { [userId: string]: number | string };
             this.gameCommunicationService.updateGameVotes(this.gameId, votesWithoutNull);
           }
           this.onCardSelected(playerId, this.gameId!, vote);
@@ -467,48 +513,29 @@ export class GamePageComponent implements OnInit, OnDestroy {
     return false;
   }
 
-  onCardSelected(playerId: string, gameId: string, vote: number): void {
+  onCardSelected(playerId: string, gameId: string, vote: number | string): void {
     this.gameCommunicationService.updateUserVote(playerId, gameId, vote);
     this.users = this.gameCommunicationService.getStoredPlayers(gameId);
   }
 
   canRevealVotes(): boolean {
-    if (!this.gameId || !this.userName) {
-      return false;
-    }
-    
-    // Usar el flag isAdmin que ya está siendo actualizado por checkAdminStatus()
-    const isStillAdmin = this.isAdmin;
-    
-   const currentState = this.gameCommunicationService.gameStateSubject.value;
-    const allVotedByServer = currentState === 'voted';
-
-    const canReveal = isStillAdmin && allVotedByServer;
-
-    return canReveal;
+  if (!this.gameId || !this.userName) {
+    return false;
   }
+  const hasAtLeastOneVote = Object.values(this.gameVotes).some(v => v !== null && v !== undefined);
+  return this.isAdmin && hasAtLeastOneVote;
+}
 
   validateAndRevealVotes(): void {
-    if (!this.gameId) {
-      console.error('❌ validateAndRevealVotes: Missing gameId');
-      return;
-    }
+  if (!this.gameId) return;
 
-
-    // Verificar que el usuario es admin
-    if (!this.isAdmin) {
-      this.toastService.showToast('❌ Solo el admin puede revelar votos', 'error');
-      return;
-    }
-
-    // Verificar que el estado es 'voted'
-    if (this.gameState !== 'voted') {
-      this.toastService.showToast('⚠️ Espera a que todos los jugadores voten', 'error');
-      return;
-    }
-
-    this.revealVotes();
+  if (!this.isAdmin) {
+    this.toastService.showToast('❌ Solo el admin puede revelar votos', 'error');
+    return;
   }
+
+  this.revealVotes();
+}
 
   revealVotes(): void {
     if (this.gameId) {
@@ -559,73 +586,82 @@ export class GamePageComponent implements OnInit, OnDestroy {
     this.closeInviteModal();
   }
 
-  getVotesForNumber(vote: number): number {
+  getVotesForNumber(vote: number | string): number {
     return Object.values(this.gameVotes).filter(v => v === vote).length;
   }
 
-  getCurrentUserVote(): { vote: number | null; id: string } {
-    const currentUserId = sessionStorage.getItem('currentUserId');
-    if (currentUserId && this.gameVotes && this.gameVotes[currentUserId] !== undefined) {
-      const vote = this.gameVotes[currentUserId];
-      return { vote: vote !== null ? vote : null, id: currentUserId };
-    }
-    // Fallback a la búsqueda anterior si no hay currentUserId
-    const currentUser = this.gameService.getCurrentUser(this.gameId!, this.userName!);
-    if (currentUser && this.gameVotes) {
-      const vote = this.gameVotes[currentUser.id];
-      return { vote: vote !== undefined ? vote : null, id: currentUser.id };
-    }
-    return { vote: null, id: '' };
+ getCurrentUserVote(): { vote: number | string | null; id: string } {
+  const normalize = (raw: number | string | null): number | string | null => {
+    if (raw === null || raw === undefined || raw === '?' || raw === '☕') return raw;
+    const asNumber = Number(raw);
+    return isNaN(asNumber) ? raw : asNumber;
+  };
+
+  const currentUserId = sessionStorage.getItem('currentUserId');
+  if (currentUserId && this.gameVotes && this.gameVotes[currentUserId] !== undefined) {
+    return { vote: normalize(this.gameVotes[currentUserId]), id: currentUserId };
   }
 
+  const currentUser = this.gameService.getCurrentUser(this.gameId!, this.userName!);
+  if (currentUser && this.gameVotes) {
+    const raw = this.gameVotes[currentUser.id];
+    return { vote: raw !== undefined ? normalize(raw) : null, id: currentUser.id };
+  }
+
+  return { vote: null, id: '' };
+}
+
   generateFibonacciUpTo89(): number[] {
-    let fib = [0, 1, 3, 5];
-    while (true) {
-      const nextFib = fib[fib.length - 1] + fib[fib.length - 2];
-      if (nextFib > 89) break;
-      fib.push(nextFib);
-    }
-    return fib;
+    return [...this.fibonacciCards];
   }
 
   generateCardNumbers(): number[] {
     const mode = this.scoringMode;
     switch(mode) {
       case 'fibonacci':
-        return this.generateFibonacciUpTo89();
+        return [...this.fibonacciCards];
       case 'oneToTen':
         return Array.from({length: 10}, (_, i) => i + 1);
       case 'twoToTwenty':
         return Array.from({length: 10}, (_, i) => (i + 1) * 2);
       default:
-        return this.generateFibonacciUpTo89();
+        return [...this.fibonacciCards];
     }
   }
 
   getAverageVote(): number {
-    const votes = Object.values(this.gameVotes).filter(vote => typeof vote === 'number') as number[];
+    const votes = Object.values(this.gameVotes)
+        .filter(vote => vote !== null && vote !== undefined && vote !== '?' && vote !== '☕')
+        .map(vote => Number(vote))
+        .filter(vote => !isNaN(vote));
+
     if (votes.length === 0) return 0;
     const sum = votes.reduce((a, b) => a + b, 0);
     return sum / votes.length;
-  }
+}
 
 
-  getUniqueVotes(): { vote: number, count: number }[] {
-    const voteCounts: { [key: number]: number } = {};
+  getUniqueVotes(): { vote: number | string, count: number }[] {
+    const voteCounts: { [key: string]: number } = {};
 
     for (const vote of Object.values(this.gameVotes)) {
-      if (typeof vote === 'number') {
-        if (!voteCounts[vote]) {
-          voteCounts[vote] = 0;
+      if (vote !== null && vote !== undefined) {
+        const voteKey = String(vote);
+        if (!voteCounts[voteKey]) {
+          voteCounts[voteKey] = 0;
         }
-        voteCounts[vote]++;
+        voteCounts[voteKey]++;
       }
     }
 
-    return Object.keys(voteCounts).map(vote => ({
-      vote: Number(vote),
-      count: voteCounts[Number(vote)]
-    }));
+    return Object.keys(voteCounts).map(vote => {
+      // Convertir a número si es posible, si no mantener como string
+      const voteValue = isNaN(Number(vote)) ? vote : Number(vote);
+      return {
+        vote: voteValue,
+        count: voteCounts[vote]
+      };
+    });
   }
 
   toggleRoleChange(): void {

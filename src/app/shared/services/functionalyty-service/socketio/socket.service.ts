@@ -54,7 +54,7 @@ export class SocketService {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
     });
 
     this.setupSocketListeners();
@@ -62,6 +62,14 @@ export class SocketService {
 
   private setupSocketListeners(): void {
     if (!this.socket) return;
+
+    this.socket.on('connect', () => {
+      this.tryAutoRejoin();
+    });
+
+    this.socket.on('reconnect', () => {
+      this.tryAutoRejoin();
+    });
 
     // Escuchar evento de objeto lanzado
     this.socket.on('object-thrown', (data: any) => {
@@ -150,7 +158,7 @@ export class SocketService {
     });
   }
 
-  submitVote(gameId: string, playerId: string, vote: number): void {
+  submitVote(gameId: string, playerId: string, vote: number | string): void {
     this.socket?.emit('submit-vote', {
       gameId,
       playerId,
@@ -182,6 +190,13 @@ export class SocketService {
     });
   }
 
+  leaveGame(gameId: string, playerId: string): void {
+    this.socket?.emit('leave-game', {
+      gameId,
+      playerId,
+    });
+  }
+
   getGameState(gameId: string): void {
     this.socket?.emit('get-game-state', { gameId });
   }
@@ -193,5 +208,37 @@ export class SocketService {
 
   isConnected(): boolean {
     return this.socket?.connected || false;
+  }
+
+  private tryAutoRejoin(): void {
+    const gameId = sessionStorage.getItem('currentGameId');
+    const playerId = sessionStorage.getItem('currentUserId');
+    const playerName = sessionStorage.getItem('currentUserName');
+    const storedPlayer = sessionStorage.getItem('currentPlayer');
+
+    if (!gameId || !playerId || !playerName) {
+      return;
+    }
+
+    let playerRole = 'player';
+    if (storedPlayer) {
+      try {
+        const parsed = JSON.parse(storedPlayer);
+        if (parsed?.rol) {
+          playerRole = parsed.rol;
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
+
+    this.socket?.emit('join-game', {
+      gameId,
+      playerId,
+      playerName,
+      playerRole,
+    });
+
+    this.socket?.emit('get-game-state', { gameId });
   }
 }

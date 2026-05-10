@@ -7,7 +7,7 @@ export interface Game {
   scoringMode?: 'fibonacci' | 'oneToTen' | 'twoToTwenty';
   players: User[];
   state: 'waiting' | 'voted' | 'completed';
-  votes: { [userId: string]: number };
+  votes: { [userId: string]: number | string };
   admin_id?: string;
   adminId?: string;
 }

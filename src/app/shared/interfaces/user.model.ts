@@ -12,7 +12,7 @@ export interface User {
   rol?: RolUsuario;
   admin?:boolean;
   assigned: boolean;
-  voted?: number;
+  voted?: number | string;
 }
 export interface CreateUserRequest {
   name: string;

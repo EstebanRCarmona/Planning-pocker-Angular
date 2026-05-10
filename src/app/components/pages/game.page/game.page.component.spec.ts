@@ -109,7 +109,7 @@ describe('GamePageComponent', () => {
 
   it('should generate correct Fibonacci numbers', () => {
     const fibNumbers = component.generateFibonacciUpTo89();
-    expect(fibNumbers).toEqual([0, 1, 3, 5, 8, 13, 21, 34, 55, 89]);
+    expect(fibNumbers).toEqual([1, 2, 3, 5, 8, 13, 21, 34, 55, 89]);
   });
 
   it('should get initials correctly', () => {
@@ -421,7 +421,7 @@ describe('GamePageComponent', () => {
   describe('Scoring Mode Comprehensive Tests', () => {
     it('should generate correct card numbers for different scoring modes', () => {
       const testCases = [
-        { mode: 'fibonacci', expectedFirst: [0, 1, 3, 5] },
+        { mode: 'fibonacci', expectedFirst: [1, 2, 3, 5] },
         { mode: 'oneToTen', expectedFirst: [1, 2, 3, 4] },
         { mode: 'twoToTwenty', expectedFirst: [2, 4, 6, 8] }
       ];

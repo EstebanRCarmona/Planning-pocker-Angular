@@ -54,15 +54,19 @@
         [number]="number"
         [isVoted]="getCurrentUserVote().vote === number"
         (cardSelected)="vote(number)"
-        [disabled]="!isPlayerRole() || currentUserVote !== null"
+        [disabled]="!isPlayerRole()"
       ></app-cart>
       <app-cart
-        [disabled]="!isPlayerRole() || currentUserVote !== null"
+        [disabled]="!isPlayerRole()"
+        [isVoted]="getCurrentUserVote().vote === '?'"
+        (cardSelected)="vote('?')"
         [number]="'?'"
       ></app-cart>
       <app-cart
         [number]="'☕'"
-        [disabled]="!isPlayerRole() || currentUserVote !== null"
+        [isVoted]="getCurrentUserVote().vote === '☕'"
+        (cardSelected)="vote('☕')"
+        [disabled]="!isPlayerRole()"
       ></app-cart>
     </ng-container>
 

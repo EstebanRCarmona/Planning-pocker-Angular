@@ -5,6 +5,7 @@
   flex-direction: column;
   align-items: center;
   gap: 0;
+  z-index: 20;
 }
 
 .player-wrapper:hover .throw-tooltip {
@@ -25,7 +26,7 @@
   padding: 6px 8px;
   display: flex;
   gap: 6px;
-  z-index: 9999;
+  z-index: 10001;
   align-items: center;
   justify-content: center;
   animation: slideUpTooltip 0.3s ease-out;
@@ -315,12 +316,20 @@
   margin: 5px 0 ;
 }
 
+.seat-placeholder {
+  width: 3.2rem;
+  height: 3.5rem;
+  visibility: hidden;
+  flex-shrink: 0;
+}
+
 .table-row {
   display: flex;
   align-items: center;
   justify-content: center;
   width:32rem ;
   position: relative;
+  z-index: 1;
 }
 
 
@@ -391,6 +400,7 @@
   position: relative;
   width: 100%;
   height: 14rem;
+  overflow: visible;
 }
 .circle-container {
   display: flex;
@@ -398,22 +408,57 @@
   align-items: center;
   justify-content: center;
   margin-top: 0.4rem;;
+  z-index: 20;
 }
 .circle-container-left {
+  display: flex;
   position: absolute;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-right: 100%
+  left: -2.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 25;
 }
 
 .circle-container-right {
+  display: flex;
   position: absolute;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-left: 100%;
-  cursor: default;
+  right: -2.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 25;
+}
+
+// Ajuste específico para tarjetas de jugador en laterales
+.player-wrapper.circle-container-left {
+  left: 0;
+  z-index: 30;
+}
+
+.player-wrapper.circle-container-right {
+  right: 0;
+  z-index: 30;
+}
+
+// Tooltips de lanzamientos en laterales (más abajo para no tapar el nombre)
+[data-player-position="left-side"] .throw-tooltip,
+[data-player-position="right-side"] .throw-tooltip {
+  bottom: -4.2rem;
+}
+
+.circle-container-left .side-card {
+  left: -2rem;
+  right: auto;
+}
+
+.circle-container-right .side-card {
+  right: -2rem;
+  left: auto;
 }
 
 .interactive {
@@ -471,7 +516,7 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  bottom: -5.5rem;
+  bottom: -6rem;
   background-color: rgba(51, 51, 51, 0.95);
   color: white;
   padding: 8px 12px;
@@ -482,7 +527,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  z-index: 10000;
+  z-index: 12000;
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: background-color 0.3s ease;
@@ -494,4 +539,26 @@
   margin-left: -10px;
   margin-right: 0;
   display: inline-block;
+}
+
+.table-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+
+  &-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(187, 101, 255, 0.2);
+    border-top-color: #BB65FF;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
