@@ -118,11 +118,9 @@ export class TableGameComponent implements OnInit, OnDestroy {
         // Suscripción para animaciones de objetos lanzados
         this.subscriptions.add(
           this.gameCommunicationService.objectThrown$.subscribe((data: any) => {
-            console.log(`[DEBUG] Objeto lanzado:`, data);
             const fromPlayer = this.players.find(p => p.userId === data.fromPlayerId);
             const toPlayer = this.players.find(p => p.userId === data.toPlayerId);
-            console.log(`[DEBUG] From: ${fromPlayer?.name}, To: ${toPlayer?.name}`);
-            
+           
             if (fromPlayer && toPlayer) {
               // Calcular secuencia de objetos para este jugador
               const toPosition = toPlayer.id;
@@ -140,7 +138,6 @@ export class TableGameComponent implements OnInit, OnDestroy {
               const animId = `${Date.now()}_${Math.random()}`;
               const direction = sequence % 2 === 1 ? 'left' : 'right-direction';
               
-              console.log(`[DEBUG] Creando animación ${animId}, secuencia ${sequence}, dirección ${direction}`);
               
               // Fase 1: Animación de vuelo (parábola)
               const anim = {
@@ -164,7 +161,6 @@ export class TableGameComponent implements OnInit, OnDestroy {
               
               // Fase 2: Transición a impacto después del vuelo (1.5 segundos)
               setTimeout(() => {
-                console.log(`[DEBUG] Cambiando a impacto para ${animId}`);
                 const anim = this.activeAnimations.find(a => a.id === animId);
                 if (anim) {
                   anim.isImpact = true;
@@ -178,8 +174,7 @@ export class TableGameComponent implements OnInit, OnDestroy {
               }, 1500);
               
               setTimeout(() => {
-                console.log(`[DEBUG] Removiendo animación ${animId}`);
-                this.activeAnimations = this.activeAnimations.filter(a => a.id !== animId);
+               this.activeAnimations = this.activeAnimations.filter(a => a.id !== animId);
                 this.changeDetectorRef.detectChanges();
               }, 2100);
             }
@@ -311,7 +306,6 @@ export class TableGameComponent implements OnInit, OnDestroy {
   }
 
   private rebuildPositionsFromPlayers(players: any[]): void {
-    console.log('[TABLE] rebuildPositionsFromPlayers input:', players?.map(p => ({ id: p.id, name: p.name, role: p.role || p.rol })));
     const previousByUserId = new Map<string, { overlay?: string | null; vote?: number | string | null }>();
     this.players.forEach(position => {
       if (position.userId) {
@@ -329,7 +323,6 @@ export class TableGameComponent implements OnInit, OnDestroy {
     const currentUserId = currentPlayer?.id || sessionStorage.getItem('currentUserId');
 
     if (!currentUserId) {
-      console.warn('[TABLE] currentUserId not available yet, skipping seat assignment');
       return;
     }
 
@@ -367,7 +360,6 @@ export class TableGameComponent implements OnInit, OnDestroy {
       const centerPosition = this.players.find(p => p.id === 'center');
       if (centerPosition) {
         applyPlayerToPosition(centerPosition, currentPlayerData);
-        console.log('[TABLE] assigned current user to center:', { id: currentPlayerData.id, name: currentPlayerData.name });
       }
     }
 
@@ -391,24 +383,20 @@ export class TableGameComponent implements OnInit, OnDestroy {
         return;
       }
       applyPlayerToPosition(target, apiPlayer);
-      console.log('[TABLE] assigned player:', { id: apiPlayer.id, name: apiPlayer.name, position: target.id });
     });
 
     this.saveTableState();
-    console.log('[TABLE] final positions:', this.players.map(p => ({ position: p.id, userId: p.userId, name: p.name })));
-  }
+   }
 
   private initializeGameState(): void {
     const currentPlayers = this.gameCommunicationService.gamePlayersSubject.value;
     if (currentPlayers && currentPlayers.length > 0) {
-      console.log('[TABLE] initializeGameState: using server players');
       this.rebuildPositionsFromPlayers(currentPlayers);
       return;
     }
 
     const storedPlayers = this.gameCommunicationService.getStoredPlayers(this.gameId!);
     if (storedPlayers.length > 0) {
-      console.log('[TABLE] initializeGameState: using stored players');
       this.rebuildPositionsFromPlayers(storedPlayers);
       return;
     }
@@ -796,7 +784,6 @@ export class TableGameComponent implements OnInit, OnDestroy {
         y: rect.top + rect.height / 2
       };
       
-      console.log(`[DEBUG] Posición de ${position}: x=${result.x}, y=${result.y}`);
       return result;
     } catch (e) {
       console.error(`[DEBUG] Error obteniendo posición:`, e);
@@ -975,8 +962,6 @@ export class TableGameComponent implements OnInit, OnDestroy {
       `;
     }
 
-    console.log(`[DEBUG] Aplicando animación de impacto: ${impactKeyframeName} en posición final almacenada: x=${currentX}, y=${currentY}`);
-    
     animElement.style.left = `${currentX}px`;
     animElement.style.top = `${currentY}px`;
     
@@ -1005,11 +990,8 @@ export class TableGameComponent implements OnInit, OnDestroy {
         return;
       }
 
-      console.log(`[DEBUG] Creando animación para ${animId} hacia posición ${toPositionId}`);
-
       const targetPos = this.getTargetPosition(toPositionId);
-      console.log(`[DEBUG] Posición objetivo: x=${targetPos.x}, y=${targetPos.y}`);
-      
+     
       const isFromLeft = direction === 'left';
       
       // Crear keyframes dinámicos
@@ -1045,8 +1027,7 @@ export class TableGameComponent implements OnInit, OnDestroy {
         };
       }
 
-      console.log(`[DEBUG] Keyframe: ${keyframeName}, startX=${startX}, startY=${startY}, endX=${endX}, endY=${endY}, distX=${distX}, distY=${distY}, maxHeight=${maxHeight}, isFromLeft=${isFromLeft}`);
-
+     
       // Construir los keyframes dinámicamente
       let keyframesContent = `@keyframes ${keyframeName} {`;
       keyframesContent += `
@@ -1103,10 +1084,8 @@ export class TableGameComponent implements OnInit, OnDestroy {
       setTimeout(() => {
         animElement.style.left = `${endX}px`;
         animElement.style.top = `${endY}px`;
-        console.log(`[DEBUG] Posición final establecida para ${animId}: left=${endX}px, top=${endY}px`);
       }, animationDuration);
       
-      console.log(`[DEBUG] Animación aplicada: ${keyframeName}`);
     };
 
     tryAttachAnimation();

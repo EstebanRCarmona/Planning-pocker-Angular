@@ -88,8 +88,4 @@ app.get('*', (req: Request, res: Response) => {
 });
 
 httpServer.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`📡 Socket.IO ready for connections`);
-  console.log(`🗄️  Connected to Supabase`);
-  console.log(`🎨 Frontend served from: ${frontendPath}`);
 });
