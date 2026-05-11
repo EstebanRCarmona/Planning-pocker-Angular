@@ -67,6 +67,18 @@ export class SupabaseService {
     return data as Game;
   }
 
+  async updateGameScoringMode(gameId: string, scoringMode: 'fibonacci' | 'oneToTen' | 'twoToTwenty'): Promise<Game> {
+    const { data, error } = await supabase
+      .from('games')
+      .update({ scoring_mode: scoringMode, updated_at: new Date().toISOString() })
+      .eq('id', gameId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Game;
+  }
+
   async deleteGame(gameId: string): Promise<void> {
     // Primero eliminar todos los votos del juego
     const { error: votesError } = await supabase

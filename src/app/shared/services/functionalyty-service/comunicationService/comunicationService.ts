@@ -51,6 +51,9 @@ export class GameCommunicationService {
   readonly startVotesCountdownSubject = new Subject<any>();
   startVotesCountdown$ = this.startVotesCountdownSubject.asObservable();
 
+  readonly scoringModeChangeSubject = new Subject<{ gameId: string, mode: 'fibonacci' | 'oneToTen' | 'twoToTwenty' }>();
+  scoringModeChange$ = this.scoringModeChangeSubject.asObservable();
+
   constructor(private socketService: SocketService) {
     const storedPlayer = sessionStorage.getItem('currentPlayer');
     if (storedPlayer) {
@@ -191,6 +194,12 @@ export class GameCommunicationService {
 
     this.socketService.startVotesCountdown$.subscribe((data: any) => {
       this.startVotesCountdownSubject.next(data);
+    });
+
+    this.socketService.scoringModeChanged$.subscribe((data: any) => {
+      if (data?.gameId && data?.mode) {
+        this.scoringModeChangeSubject.next({ gameId: data.gameId, mode: data.mode });
+      }
     });
   }
 

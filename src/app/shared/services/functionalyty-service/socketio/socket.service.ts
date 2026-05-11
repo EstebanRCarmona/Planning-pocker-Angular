@@ -23,6 +23,7 @@ export class SocketService {
   private allVotedSubject = new Subject<void>();
   private gameDeletedSubject = new Subject<any>();
   private startVotesCountdownSubject = new Subject<any>();
+  private scoringModeChangedSubject = new Subject<any>();
 
   private objectThrownSubject = new Subject<any>();
   objectThrown$ = this.objectThrownSubject.asObservable();
@@ -40,6 +41,7 @@ export class SocketService {
   allVoted$ = this.allVotedSubject.asObservable();
   gameDeleted$ = this.gameDeletedSubject.asObservable();
   startVotesCountdown$ = this.startVotesCountdownSubject.asObservable();
+  scoringModeChanged$ = this.scoringModeChangedSubject.asObservable();
 
   constructor() {
     this.serverUrl = environment.socketUrl;
@@ -127,6 +129,10 @@ export class SocketService {
     this.socket.on('start-votes-countdown', (data: any) => {
       this.startVotesCountdownSubject.next(data);
     });
+
+    this.socket.on('scoring-mode-changed', (data: any) => {
+      this.scoringModeChangedSubject.next(data);
+    });
   }
 
   joinGame(gameId: string, playerId: string, playerName: string, playerRole: string): void {
@@ -187,6 +193,13 @@ export class SocketService {
       gameId,
       newAdminId,
       oldAdminId,
+    });
+  }
+
+  changeScoringMode(gameId: string, scoringMode: 'fibonacci' | 'oneToTen' | 'twoToTwenty'): void {
+    this.socket?.emit('change-scoring-mode', {
+      gameId,
+      scoringMode,
     });
   }
 

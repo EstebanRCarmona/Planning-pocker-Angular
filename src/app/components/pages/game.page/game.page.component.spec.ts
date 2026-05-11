@@ -42,13 +42,15 @@ describe('GamePageComponent', () => {
       playerVote: jest.fn(),
       getGamePlayerCount: jest.fn(),
       revealVotes: jest.fn(),
-      resetGameVotesAndStatus: jest.fn()
+      resetGameVotesAndStatus: jest.fn(),
+      changeScoringMode: jest.fn()
     };
 
     const gameCommunicationServiceMock = {
       player$: of(mockUser),
       updateGameVotes: jest.fn(),
       adminChange$: new Subject<void>(),
+      scoringModeChange$: new Subject<any>(),
       updateUserVote: jest.fn(),
       getStoredPlayers: jest.fn(),
       updateGameCompletedStatus: jest.fn(),

@@ -99,6 +99,13 @@ export class GamePageComponent implements OnInit, OnDestroy {
               this.gameName = game.name;
               this.gameState = game.state;
               this.gameCommunicationService.gameStateSubject.next(game.state);
+
+              const serverScoringMode = game.scoring_mode || game.scoringMode;
+              if (serverScoringMode) {
+                this.scoringMode = serverScoringMode;
+                this.fibonacciNumbers = this.generateCardNumbers();
+                sessionStorage.setItem(`scoringMode_${this.gameId}`, serverScoringMode);
+              }
               
               this.gameVotes = votes || {};
               // Guardar el admin_id del juego (evitar guardar 'undefined')
@@ -284,21 +291,17 @@ export class GamePageComponent implements OnInit, OnDestroy {
       })
     );
 
-    // Escuchar cambios en el modo de puntuación (una sola vez)
-    const handleScoringModeChange = (event: StorageEvent) => {
-      if (event.key === 'scoring_mode_change' && event.newValue) {
-        const modeChangeData = JSON.parse(event.newValue);
-        if (modeChangeData.gameId === this.gameId) {
-          this.scoringMode = modeChangeData.mode;
+    // Escuchar cambios en el modo de puntuación por Socket.IO
+    this.subscriptions.add(
+      this.gameCommunicationService.scoringModeChange$.subscribe((data: any) => {
+        if (data?.gameId === this.gameId) {
+          this.scoringMode = data.mode;
           this.fibonacciNumbers = this.generateCardNumbers();
+          sessionStorage.setItem(`scoringMode_${this.gameId}`, data.mode);
           this.changeDetectorRef.detectChanges();
         }
-      }
-    };
-    window.addEventListener('storage', handleScoringModeChange);
-    this.subscriptions.add(() => {
-      window.removeEventListener('storage', handleScoringModeChange);
-    });
+      })
+    );
 
     // Cerrar dropdowns al hacer click fuera
     const handleClickOutside = (event: any) => {
@@ -736,14 +739,15 @@ export class GamePageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (!this.gameId) {
+      this.toastService.showToast('Error: ID del juego no encontrado', 'error');
+      return;
+    }
+
     this.scoringMode = mode;
     this.fibonacciNumbers = this.generateCardNumbers();
     sessionStorage.setItem(`scoringMode_${this.gameId}`, mode);
-    sessionStorage.setItem('scoring_mode_change', JSON.stringify({
-      gameId: this.gameId,
-      mode: mode,
-      timestamp: Date.now()
-    }));
+    this.gameService.changeScoringMode(this.gameId, mode);
     this.isScoringModeVisible = false;
     this.changeDetectorRef.detectChanges();
   }

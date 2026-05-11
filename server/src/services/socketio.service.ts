@@ -226,6 +226,27 @@ export class SocketIOService {
         }
       });
 
+      // Change scoring mode
+      socket.on('change-scoring-mode', async (data: any) => {
+        try {
+          const { gameId, scoringMode } = data;
+          if (!gameId || !scoringMode) {
+            socket.emit('error', { message: 'Missing gameId or scoringMode' });
+            return;
+          }
+
+          await supabaseService.updateGameScoringMode(gameId, scoringMode);
+
+          this.io.to(gameId).emit('scoring-mode-changed', {
+            gameId,
+            mode: scoringMode
+          });
+        } catch (error) {
+          console.error('❌ Error changing scoring mode:', error);
+          socket.emit('error', { message: 'Failed to change scoring mode', error });
+        }
+      });
+
       // Leave game (explicit)
       socket.on('leave-game', async (data: any) => {
         try {

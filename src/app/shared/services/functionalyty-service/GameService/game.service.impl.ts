@@ -151,6 +151,10 @@ export class GameService {
     sessionStorage.setItem(`admin_${gameId}`, id);
   }
 
+  changeScoringMode(gameId: string, scoringMode: 'fibonacci' | 'oneToTen' | 'twoToTwenty'): void {
+    this.socketService.changeScoringMode(gameId, scoringMode);
+  }
+
   private generateId(): string {
    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
       const r = Math.random() * 16 | 0;
